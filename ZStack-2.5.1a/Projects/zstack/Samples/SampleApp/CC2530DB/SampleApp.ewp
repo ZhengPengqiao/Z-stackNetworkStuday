@@ -346,7 +346,7 @@
         </option>
         <option>
           <name>CCRequirePrototypes</name>
-          <state>1</state>
+          <state>0</state>
         </option>
         <option>
           <name>CCMultibyteSupport</name>
@@ -2395,7 +2395,7 @@
           <state>MT_TASK</state>
           <state>MT_SYS_FUNC</state>
           <state>MT_ZDO_FUNC</state>
-          <state>LCD_SUPPORTED=DEBUG</state>
+          <state>LCD_SUPPORTED</state>
         </option>
         <option>
           <name>CCPreprocFile</name>
@@ -2463,7 +2463,7 @@
         </option>
         <option>
           <name>CCRequirePrototypes</name>
-          <state>1</state>
+          <state>0</state>
         </option>
         <option>
           <name>CCMultibyteSupport</name>
@@ -3179,6 +3179,12 @@
   </configuration>
   <group>
     <name>App</name>
+    <file>
+      <name>$PROJ_DIR$\..\Source\DS18B20.c</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\Source\DS18B20.h</name>
+    </file>
     <file>
       <name>$PROJ_DIR$\..\Source\OSAL_SampleApp.c</name>
     </file>

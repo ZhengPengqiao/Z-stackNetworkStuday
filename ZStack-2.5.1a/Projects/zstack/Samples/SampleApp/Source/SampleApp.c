@@ -75,6 +75,8 @@
 #include "MT_APP.h"
 #include "MT.h"
 
+#include "DS18B20.h"
+
 /*********************************************************************
  * MACROS
  */
@@ -190,7 +192,7 @@ void SampleApp_Init( uint8 task_id )
       定义。
     */
   SampleApp_TransID = 0;        //消息发送ID（多消息时有顺序之分）
-  
+  HalLcdWriteString( "SampleApp OK", HAL_LCD_LINE_1 ); 
   // Device hardware initialization can be added here or in main() (Zmain.c).
   // If the hardware is application specific - add it here.
   // If the hardware is other parts of the device add it in main().
@@ -198,7 +200,11 @@ void SampleApp_Init( uint8 task_id )
   MT_UartInit();   //初始化串口
   MT_UartRegisterTaskID(task_id); //注册串口任务
   HalUARTWrite(0,"UartInit OK\n",sizeof("UartInit OK\n")); //向串口发送数据
-  //------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------ 配置DS18B20 --------------------------------------
+  P0SEL &= 0x7F;            //DS18B20的io初始化P0_7
+//------------------------------------------------------------------------------
+
   
  #if defined ( BUILD_ALL_DEVICES )
   // The "Demo" target is setup to have BUILD_ALL_DEVICES and HOLD_AUTO_START
@@ -435,7 +441,7 @@ void SampleApp_MessageMSGCB( afIncomingMSGPacket_t *pkt )
   switch ( pkt->clusterId ) //判断簇ID
   {
     case SAMPLEAPP_P2P_CLUSTERID: //收到广播数据
-      HalUARTWrite(0,"RX:",3); //提示信息
+      HalUARTWrite(0,"TEMP:",5); //提示信息
       HalUARTWrite(0,pkt->cmd.Data,pkt->cmd.DataLength);//输出接收到的
       HalUARTWrite(0,"\n",1);  //回车换行
       break;
@@ -466,14 +472,31 @@ void SampleApp_MessageMSGCB( afIncomingMSGPacket_t *pkt )
 //分析发送周期信息
 void SampleApp_Send_P2P_Message( void )
 {
-  byte SendData[11]="1234567890";
-
+  byte str[5];
+  char strTemp[10];
+  byte temp;
+  
+  temp = getDs18B20();  //读取温度数据
+  
+  str[0] = temp/10+'0';
+  str[1] = temp%10+'0';
+  str[2] = '\'';
+  str[3] = 'C';
+  str[4] = '\0';
+  
+  HalUARTWrite(0,"TEMP:",5);  //终端串口输出提示信息
+  HalUARTWrite(0,str,2);
+  HalUARTWrite(0,"\n",1);
+  
+  osal_memcpy(strTemp,"TEMP:",5);
+  osal_memcpy(&strTemp[5],str,5);
+  HalLcdWriteString(strTemp,HAL_LCD_LINE_3);  //LCD显示
   // 调用AF_DataRequest将数据无线广播出去
   if( AF_DataRequest( &SampleApp_P2P_DstAddr,//发送目的地址＋端点地址和传送模式
                        &SampleApp_epDesc,//源(答复或确认)终端的描述（比如操作系统中任务ID等）源EP
                        SAMPLEAPP_P2P_CLUSTERID, //被Profile指定的有效的集群号
-                       10,       // 发送数据长度
-                       SendData,// 发送数据缓冲区
+                       4,       // 发送数据长度
+                       str,// 发送数据缓冲区
                        &SampleApp_TransID,     // 任务ID号
                        AF_DISCV_ROUTE,      // 有效位掩码的发送选项
                        AF_DEFAULT_RADIUS ) == afStatus_SUCCESS )  //传送跳数，通常设置为AF_DEFAULT_RADIUS

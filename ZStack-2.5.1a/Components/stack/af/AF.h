@@ -22,7 +22,7 @@
   its documentation for any purpose.
 
   YOU FURTHER ACKNOWLEDGE AND AGREE THAT THE SOFTWARE AND DOCUMENTATION ARE
-  PROVIDED “AS IS?WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+  PROVIDED “AS IS” WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED,
   INCLUDING WITHOUT LIMITATION, ANY WARRANTY OF MERCHANTABILITY, TITLE,
   NON-INFRINGEMENT AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL
   TEXAS INSTRUMENTS OR ITS LICENSORS BE LIABLE OR OBLIGATED UNDER CONTRACT,
@@ -178,15 +178,15 @@ typedef uint16  cId_t;
 // Simple Description Format Structure
 typedef struct
 {
-  uint8          EndPoint;     //EP ID(EP = End Point)
-  uint16         AppProfId;    //profile ID(ÆÊÃæID)
-  uint16         AppDeviceId;  //Device ID
-  uint8          AppDevVer:4;  //Device Version 0x00  žéversion 1.0
+  uint8          EndPoint;
+  uint16         AppProfId;
+  uint16         AppDeviceId;
+  uint8          AppDevVer:4;
   uint8          Reserved:4;             // AF_V1_SUPPORT uses for AppFlags:4.
-  uint8          AppNumInClusters;       // ½K¶ËÖ§³ÖµÄÝ”Èë´ØµÄ‚€”µ
-  cId_t         *pAppInClusterList;      //Ö¸ÏòÝ”ÈëClusterIDÁÐ±íµÄÖ¸á˜
-  uint8          AppNumOutClusters;      //Ý”³ö´ØµÄ‚€”µ
-  cId_t         *pAppOutClusterList;     //Ö¸ÏòÝ”³öClusterIDÁÐ±íµÄÖ¸á˜
+  uint8          AppNumInClusters;
+  cId_t         *pAppInClusterList;
+  uint8          AppNumOutClusters;
+  cId_t         *pAppOutClusterList;
 } SimpleDescriptionFormat_t;
 
 /*********************************************************************
@@ -224,22 +224,22 @@ typedef enum
 
 typedef enum
 {
-  afAddrNotPresent = AddrNotPresent, //¼ä½Ó´«ËÍ
-  afAddr16Bit      = Addr16Bit,  //µã²¥·½Ê½
+  afAddrNotPresent = AddrNotPresent,
+  afAddr16Bit      = Addr16Bit,
   afAddr64Bit      = Addr64Bit,
-  afAddrGroup      = AddrGroup,  //×é²¥·½Ê½
-  afAddrBroadcast  = AddrBroadcast //¹ã²¥·½Ê½
+  afAddrGroup      = AddrGroup,
+  afAddrBroadcast  = AddrBroadcast
 } afAddrMode_t;
 
 typedef struct
 {
   union
   {
-    uint16      shortAddr;  //¶ÌµØÖ·
-    ZLongAddr_t extAddr;    //IEEEµØÖ·
+    uint16      shortAddr;
+    ZLongAddr_t extAddr;
   } addr;
-  afAddrMode_t addrMode;    //´«ËÍÄ£Ê½
-  uint8 endPoint;           //¶ËµãºÅ
+  afAddrMode_t addrMode;
+  uint8 endPoint;
   uint16 panId;  // used for the INTER_PAN feature
 } afAddrType_t;
 
@@ -278,7 +278,7 @@ typedef struct
 {
   uint8 endPoint;
   uint8 *task_id;  // Pointer to location of the Application task ID.
-  SimpleDescriptionFormat_t *simpleDesc;  //Éè±¸¼òµ¥ÃèÊö·û
+  SimpleDescriptionFormat_t *simpleDesc;
   afNetworkLatencyReq_t latencyReq;
 } endPointDesc_t;
 

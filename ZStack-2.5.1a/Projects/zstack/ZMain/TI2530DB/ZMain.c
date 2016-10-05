@@ -329,11 +329,28 @@ static void zmain_dev_info(void)
     lcd_buf[i++] = ch + (( ch < 10 ) ? '0' : '7');
   }
   lcd_buf[Z_EXTADDR_LEN*2] = '\0';
-  HalLcdWriteString( "IEEE: ", HAL_LCD_LINE_1 );
-  HalLcdWriteString( (char*)lcd_buf, HAL_LCD_LINE_2 );
+  
+  //DrawRectFill(0 ,0 ,128,128,GREEN);//背景色
+  DrawRectFill(3 ,20 ,122,106,WHITE); //显示窗口
+   
+  Color    = BLACK; //前景色
+  Color_BK = GREEN; //背景色
+  LCD_write_EN_string(64-7*osal_strlen((char *)AppTitle)/2,3,AppTitle); //显示标题
+  
+  Color    = BLACK; //前景色
+  Color_BK = WHITE; //背景色
+  HalLcdWriteString( "IEEE: ", HAL_LCD_LINE_3 );
+  Color    = BLUE;                    
+  HalLcdWriteString( (char*)lcd_buf, HAL_LCD_LINE_4 );
+  
+  Color    = RED; 
+  LCD_write_CN_string(9, 95, "深圳市安联德科技");
+  Color    = BLACK; 
+  LCD_write_CN_string(9, 110, "诚信立足");
+  Color    = MAGENTA; 
+  LCD_write_CN_string(63,110, "创新致远");  
 #endif
 }
-
 
 #ifdef LCD_SUPPORTED
 /*********************************************************************

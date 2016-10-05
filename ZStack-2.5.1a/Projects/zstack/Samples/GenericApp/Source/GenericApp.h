@@ -1,22 +1,22 @@
 /**************************************************************************************************
-  Filename:       hal_led.h
-  Revised:        $Date: 2007-07-06 10:42:24 -0700 (Fri, 06 Jul 2007) $
-  Revision:       $Revision: 13579 $
+  Filename:       GenericApp.h
+  Revised:        $Date: 2012-02-12 15:58:41 -0800 (Sun, 12 Feb 2012) $
+  Revision:       $Revision: 29216 $
 
-  Description:    This file contains the interface to the LED Service.
+  Description:    This file contains the Generic Application definitions.
 
 
-  Copyright 2005-2007 Texas Instruments Incorporated. All rights reserved.
+  Copyright 2004-2012 Texas Instruments Incorporated. All rights reserved.
 
   IMPORTANT: Your use of this Software is limited to those specific rights
   granted under the terms of a software license agreement between the user
   who downloaded the software, his/her employer (which must be your employer)
-  and Texas Instruments Incorporated (the "License").  You may not use this
+  and Texas Instruments Incorporated (the "License"). You may not use this
   Software unless you agree to abide by the terms of the License. The License
   limits your use, and you acknowledge, that the Software may not be modified,
   copied or distributed unless embedded on a Texas Instruments microcontroller
   or used solely and exclusively in conjunction with a Texas Instruments radio
-  frequency transceiver, which is integrated into your product.  Other than for
+  frequency transceiver, which is integrated into your product. Other than for
   the foregoing purpose, you may not use, reproduce, copy, prepare derivative
   works of, modify, distribute, perform, display or sell this Software and/or
   its documentation for any purpose.
@@ -37,8 +37,8 @@
   contact Texas Instruments Incorporated at www.TI.com. 
 **************************************************************************************************/
 
-#ifndef HAL_LED_H
-#define HAL_LED_H
+#ifndef GENERICAPP_H
+#define GENERICAPP_H
 
 #ifdef __cplusplus
 extern "C"
@@ -48,74 +48,51 @@ extern "C"
 /*********************************************************************
  * INCLUDES
  */
-#include "hal_board.h"
+#include "ZComDef.h"
+
+/*********************************************************************
+ * CONSTANTS
+ */
+
+// These constants are only for example and should be changed to the
+// device's needs
+#define GENERICAPP_ENDPOINT           10
+
+#define GENERICAPP_PROFID             0x0F04
+#define GENERICAPP_DEVICEID           0x0001
+#define GENERICAPP_DEVICE_VERSION     0
+#define GENERICAPP_FLAGS              0
+
+#define GENERICAPP_MAX_CLUSTERS       1
+#define GENERICAPP_CLUSTERID          1
+
+// Send Message Timeout
+#define GENERICAPP_SEND_MSG_TIMEOUT   5000     // Every 5 seconds
+
+// Application Events (OSAL) - These are bit weighted definitions.
+#define GENERICAPP_SEND_MSG_EVT       0x0001
+
+#if defined( IAR_ARMCM3_LM )
+#define GENERICAPP_RTOS_MSG_EVT       0x0002
+#endif  
 
 /*********************************************************************
  * MACROS
  */
 
 /*********************************************************************
- * CONSTANTS
- */
-
-/* LEDS - The LED number is the same as the bit position */
-#define HAL_LED_1     0x01
-#define HAL_LED_2     0x02
-#define HAL_LED_3     0x04
-#define HAL_LED_4     0x08
-#define HAL_LED_ALL   (HAL_LED_1 | HAL_LED_2 | HAL_LED_3 | HAL_LED_4)
-
-/* Modes */
-#define HAL_LED_MODE_OFF     0x00
-#define HAL_LED_MODE_ON      0x01
-#define HAL_LED_MODE_BLINK   0x02
-#define HAL_LED_MODE_FLASH   0x04
-#define HAL_LED_MODE_TOGGLE  0x08
-
-/* Defaults */
-#define HAL_LED_DEFAULT_MAX_LEDS      4
-#define HAL_LED_DEFAULT_DUTY_CYCLE    5
-#define HAL_LED_DEFAULT_FLASH_COUNT   50
-#define HAL_LED_DEFAULT_FLASH_TIME    1000
-
-/*********************************************************************
- * TYPEDEFS
- */
-
-
-/*********************************************************************
- * GLOBAL VARIABLES
+ * FUNCTIONS
  */
 
 /*
- * Initialize LED Service.
+ * Task Initialization for the Generic Application
  */
-extern void HalLedInit( void );
+extern void GenericApp_Init( byte task_id );
 
 /*
- * Set the LED ON/OFF/TOGGLE.
+ * Task Event Processor for the Generic Application
  */
-extern uint8 HalLedSet( uint8 led, uint8 mode );
-
-/*
- * Blink the LED.
- */
-extern void HalLedBlink( uint8 leds, uint8 cnt, uint8 duty, uint16 time );
-
-/*
- * Put LEDs in sleep state - store current values
- */
-extern void HalLedEnterSleep( void );
-
-/*
- * Retore LEDs from sleep state
- */
-extern void HalLedExitSleep( void );
-
-/*
- * Return LED state
- */
-extern uint8 HalLedGetState ( void );
+extern UINT16 GenericApp_ProcessEvent( byte task_id, UINT16 events );
 
 /*********************************************************************
 *********************************************************************/
@@ -124,4 +101,4 @@ extern uint8 HalLedGetState ( void );
 }
 #endif
 
-#endif
+#endif /* GENERICAPP_H */

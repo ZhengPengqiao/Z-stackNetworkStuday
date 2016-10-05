@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<Workspace>
+  <ConfigDictionary>
+    
+  <CurrentConfigs><Project>SampleApp/CoordinatorEB</Project></CurrentConfigs></ConfigDictionary>
+  <Desktop>
+    <Static>
+      <Workspace>
+        <ColumnWidths>
+          
+          
+          
+          
+        <Column0>225</Column0><Column1>27</Column1><Column2>27</Column2><Column3>27</Column3></ColumnWidths>
+      </Workspace>
+      <Build>
+        
+        
+        
+        
+      <ColumnWidth0>20</ColumnWidth0><ColumnWidth1>1395</ColumnWidth1><ColumnWidth2>372</ColumnWidth2><ColumnWidth3>93</ColumnWidth3></Build>
+      <TerminalIO/>
+      <Debug-Log>
+        
+        
+      <ColumnWidth0>20</ColumnWidth0><ColumnWidth1>1861</ColumnWidth1></Debug-Log>
+    <Find-in-Files><ColumnWidth0>448</ColumnWidth0><ColumnWidth1>64</ColumnWidth1><ColumnWidth2>768</ColumnWidth2></Find-in-Files></Static>
+    <Windows>
+      
+      
+    <Wnd0>
+        <Tabs>
+          <Tab>
+            <Identity>TabID-18727-9716</Identity>
+            <TabName>Workspace</TabName>
+            <Factory>Workspace</Factory>
+            <Session>
+              
+            <NodeDict><ExpandedNode>SampleApp</ExpandedNode><ExpandedNode>SampleApp/App</ExpandedNode><ExpandedNode>SampleApp/HAL</ExpandedNode><ExpandedNode>SampleApp/ZMain</ExpandedNode></NodeDict></Session>
+          </Tab>
+        </Tabs>
+        
+      <SelectedTab>0</SelectedTab></Wnd0><Wnd1>
+        <Tabs>
+          <Tab>
+            <Identity>TabID-3336-10209</Identity>
+            <TabName>Build</TabName>
+            <Factory>Build</Factory>
+            <Session/>
+          </Tab>
+          <Tab>
+            <Identity>TabID-5448-12012</Identity>
+            <TabName>Debug Log</TabName>
+            <Factory>Debug-Log</Factory>
+            <Session/>
+          </Tab>
+        <Tab><Identity>TabID-21030-12028</Identity><TabName>Find in Files</TabName><Factory>Find-in-Files</Factory><Session/></Tab></Tabs>
+        
+      <SelectedTab>2</SelectedTab></Wnd1></Windows>
+    <Editor>
+      
+      
+      
+      
+    <Pane><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\Components\hal\include\hal_key.h</Filename><XPos>0</XPos><YPos>75</YPos><SelStart>3567</SelStart><SelEnd>3567</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\Components\mt\MT_UART.h</Filename><XPos>0</XPos><YPos>111</YPos><SelStart>569</SelStart><SelEnd>569</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\ZMain\TI2530DB\ZMain.c</Filename><XPos>0</XPos><YPos>375</YPos><SelStart>714</SelStart><SelEnd>715</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\Source\OSAL_SampleApp.c</Filename><XPos>0</XPos><YPos>90</YPos><SelStart>3941</SelStart><SelEnd>3941</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\Source\SampleAppHw.c</Filename><XPos>0</XPos><YPos>60</YPos><SelStart>3421</SelStart><SelEnd>3421</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\Source\SampleAppHw.h</Filename><XPos>0</XPos><YPos>51</YPos><SelStart>789</SelStart><SelEnd>789</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\Source\SampleApp.h</Filename><XPos>0</XPos><YPos>33</YPos><SelStart>1052</SelStart><SelEnd>1052</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\Components\osal\include\OSAL_Tasks.h</Filename><XPos>0</XPos><YPos>72</YPos><SelStart>3327</SelStart><SelEnd>3327</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\Components\osal\common\OSAL.c</Filename><XPos>0</XPos><YPos>39</YPos><SelStart>1157</SelStart><SelEnd>1157</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\Components\osal\include\OSAL.h</Filename><XPos>0</XPos><YPos>162</YPos><SelStart>5428</SelStart><SelEnd>5428</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\CoordinatorEB\List\SampleApp.s51</Filename><XPos>0</XPos><YPos>930</YPos><SelStart>41045</SelStart><SelEnd>41045</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\CoordinatorEB\List\SampleAppHw.s51</Filename><XPos>0</XPos><YPos>256</YPos><SelStart>15588</SelStart><SelEnd>15588</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\Source\SampleApp.c</Filename><XPos>0</XPos><YPos>278</YPos><SelStart>8004</SelStart><SelEnd>8004</SelEnd></Tab><ActiveTab>12</ActiveTab></Pane><ActivePane>0</ActivePane><Sizes><Pane><X>1000000</X><Y>1000000</Y></Pane></Sizes><SplitMode>1</SplitMode></Editor>
+    <Positions>
+      
+      
+      
+      
+      
+    <Top><Row0><Sizes><Toolbar-001d1ca0><key>iaridepm.enu1</key></Toolbar-001d1ca0></Sizes></Row0></Top><Left><Row0><Sizes><Wnd0><Rect><Top>-2</Top><Left>-2</Left><Bottom>538</Bottom><Right>316</Right><x>-2</x><y>-2</y><xscreen>201</xscreen><yscreen>145</yscreen><sizeHorzCX>154378</sizeHorzCX><sizeHorzCY>199725</sizeHorzCY><sizeVertCX>244240</sizeVertCX><sizeVertCY>743802</sizeVertCY></Rect></Wnd0></Sizes></Row0></Left><Right><Row0><Sizes/></Row0></Right><Bottom><Row0><Sizes><Wnd1><Rect><Top>-2</Top><Left>-2</Left><Bottom>143</Bottom><Right>1304</Right><x>-2</x><y>-2</y><xscreen>1306</xscreen><yscreen>145</yscreen><sizeHorzCX>1003072</sizeHorzCX><sizeHorzCY>199725</sizeHorzCY><sizeVertCX>154378</sizeVertCX><sizeVertCY>199725</sizeVertCY></Rect></Wnd1></Sizes></Row0></Bottom><Float><Sizes/></Float></Positions>
+  </Desktop>
+</Workspace>
+
+

@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<Project>
+  <Desktop>
+    <Static>
+      <Debug-Log>
+        
+        
+      <ColumnWidth0>20</ColumnWidth0><ColumnWidth1>1861</ColumnWidth1></Debug-Log>
+      <Build>
+        
+        
+        
+        
+      <ColumnWidth0>20</ColumnWidth0><ColumnWidth1>1395</ColumnWidth1><ColumnWidth2>372</ColumnWidth2><ColumnWidth3>93</ColumnWidth3></Build>
+      <Workspace>
+        <ColumnWidths>
+          
+          
+          
+          
+        <Column0>130</Column0><Column1>27</Column1><Column2>27</Column2><Column3>27</Column3></ColumnWidths>
+      </Workspace>
+      <Disassembly>
+        
+        
+        
+      <MixedMode>1</MixedMode><CodeCovShow>1</CodeCovShow><InstrProfShow>1</InstrProfShow></Disassembly>
+    </Static>
+    <Windows>
+      
+      
+      
+    <Wnd3>
+        <Tabs>
+          <Tab>
+            <Identity>TabID-18685-11150</Identity>
+            <TabName>Debug Log</TabName>
+            <Factory>Debug-Log</Factory>
+            <Session/>
+          </Tab>
+          <Tab>
+            <Identity>TabID-18162-11160</Identity>
+            <TabName>Build</TabName>
+            <Factory>Build</Factory>
+            <Session/>
+          </Tab>
+        </Tabs>
+        
+      <SelectedTab>0</SelectedTab></Wnd3><Wnd4>
+        <Tabs>
+          <Tab>
+            <Identity>TabID-29433-11153</Identity>
+            <TabName>Workspace</TabName>
+            <Factory>Workspace</Factory>
+            <Session>
+              
+            <NodeDict><ExpandedNode>SampleApp</ExpandedNode></NodeDict></Session>
+          </Tab>
+        </Tabs>
+        
+      <SelectedTab>0</SelectedTab></Wnd4><Wnd5>
+        <Tabs>
+          <Tab>
+            <Identity>TabID-7414-11157</Identity>
+            <TabName>Disassembly</TabName>
+            <Factory>Disassembly</Factory>
+            <Session/>
+          </Tab>
+        </Tabs>
+        
+      <SelectedTab>0</SelectedTab></Wnd5></Windows>
+    <Editor>
+      
+      
+      
+      
+    <Pane><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\Source\SampleApp.c</Filename><XPos>0</XPos><YPos>74</YPos><SelStart>3710</SelStart><SelEnd>3710</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\Source\SampleApp.h</Filename><XPos>0</XPos><YPos>18</YPos><SelStart>1277</SelStart><SelEnd>1277</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\ZMain\TI2530DB\ZMain.c</Filename><XPos>0</XPos><YPos>69</YPos><SelStart>3326</SelStart><SelEnd>3326</SelEnd></Tab><ActiveTab>2</ActiveTab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\Tools\CC2530DB\f8w2530.xcl</Filename><XPos>0</XPos><YPos>189</YPos><SelStart>6854</SelStart><SelEnd>6854</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\Tools\CC2530DB\f8wConfig.cfg</Filename><XPos>0</XPos><YPos>33</YPos><SelStart>1978</SelStart><SelEnd>1978</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\Components\hal\target\CC2530EB\hal_board_cfg.h</Filename><XPos>0</XPos><YPos>15</YPos><SelStart>2108</SelStart><SelEnd>2108</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\Components\mac\low_level\srf04\single_chip\mac_radio_defs.h</Filename><XPos>0</XPos><YPos>9</YPos><SelStart>2244</SelStart><SelEnd>2244</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\Components\mac\low_level\srf04\single_chip\mac_radio_defs.c</Filename><XPos>0</XPos><YPos>15</YPos><SelStart>2245</SelStart><SelEnd>2245</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\Components\mac\high_level\mac_pib.c</Filename><XPos>0</XPos><YPos>253</YPos><SelStart>13254</SelStart><SelEnd>13254</SelEnd></Tab></Pane><ActivePane>0</ActivePane><Sizes><Pane><X>1000000</X><Y>1000000</Y></Pane></Sizes><SplitMode>1</SplitMode></Editor>
+    <Positions>
+      
+      
+      
+      
+      
+    <Top><Row0><Sizes><Toolbar-029c1ca0><key>iaridepm.enu1</key></Toolbar-029c1ca0></Sizes></Row0><Row1><Sizes><Toolbar-0c231120><key>debuggergui.enu1</key></Toolbar-0c231120></Sizes></Row1></Top><Left><Row0><Sizes><Wnd4><Rect><Top>-2</Top><Left>-2</Left><Bottom>513</Bottom><Right>204</Right><x>-2</x><y>-2</y><xscreen>136</xscreen><yscreen>146</yscreen><sizeHorzCX>104294</sizeHorzCX><sizeHorzCY>201102</sizeHorzCY><sizeVertCX>157975</sizeVertCX><sizeVertCY>709366</sizeVertCY></Rect></Wnd4></Sizes></Row0></Left><Right><Row0><Sizes><Wnd5><Rect><Top>-2</Top><Left>-2</Left><Bottom>513</Bottom><Right>134</Right><x>-2</x><y>-2</y><xscreen>136</xscreen><yscreen>146</yscreen><sizeHorzCX>104294</sizeHorzCX><sizeHorzCY>201102</sizeHorzCY><sizeVertCX>104294</sizeVertCX><sizeVertCY>709366</sizeVertCY></Rect></Wnd5></Sizes></Row0></Right><Bottom><Row0><Sizes><Wnd3><Rect><Top>-2</Top><Left>-2</Left><Bottom>144</Bottom><Right>1306</Right><x>-2</x><y>-2</y><xscreen>1308</xscreen><yscreen>146</yscreen><sizeHorzCX>1003067</sizeHorzCX><sizeHorzCY>201102</sizeHorzCY><sizeVertCX>104294</sizeVertCX><sizeVertCY>201102</sizeVertCY></Rect></Wnd3></Sizes></Row0></Bottom><Float><Sizes/></Float></Positions>
+  </Desktop>
+</Project>
+
+

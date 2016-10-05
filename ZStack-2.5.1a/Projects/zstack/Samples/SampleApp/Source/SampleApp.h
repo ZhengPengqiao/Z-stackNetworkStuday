@@ -71,9 +71,11 @@ extern "C"
 // Send Message Timeout
 #define SAMPLEAPP_SEND_PERIODIC_MSG_TIMEOUT   5000     // Every 5 seconds
 #define SAMPLEAPP_SEND_P2P_MSG_TIMEOUT   500     // Every 5 seconds
+#define SAMPLEAPP_SEND_PERIODIC_ACKMSG_TIMEOUT 1000
 // Application Events (OSAL) - These are bit weighted definitions.
 #define SAMPLEAPP_SEND_PERIODIC_MSG_EVT       0x0001
 #define SAMPLEAPP_SEND_P2P_MSG_EVT       0x0002 
+#define SAMPLEAPP_SEND_PERIODIC_ACKMSG_EVT 0x0004
 // Group ID for Flash Command
 #define SAMPLEAPP_FLASH_GROUP                  0x0001
   

@@ -1,3 +1,65 @@
+终端通过  按键事件发生组播数据，协调器只接收
+  if ( keys & HAL_KEY_SW_6 )
+  {
+    /* This key sends the Flash Command is sent to Group 1.
+     * This device will not receive the Flash Command from this
+     * device (even if it belongs to group 1).
+     */
+     #if defined(ZDO_COORDINATOR)  //协调器只接收数据
+     
+     #else                         //路由器和终端才会发送数据
+        SampleApp_SendFlashMessage(0); //以组播方式发送数据
+     #endif
+  }
+
+
+组播发送函数将小灯状态翻转LedState，然后发送给协调器
+void SampleApp_SendFlashMessage( uint16 flashTime ) //此实验没有用到，后面再分析
+{
+  LedState = ~LedState;
+
+  if ( AF_DataRequest( &SampleApp_Flash_DstAddr, 
+                       &SampleApp_epDesc,
+                       SAMPLEAPP_FLASH_CLUSTERID,
+                       1,
+                       &LedState,
+                       &SampleApp_TransID,
+                       AF_DISCV_ROUTE,
+                       AF_DEFAULT_RADIUS ) == afStatus_SUCCESS )
+  {
+     if(LedState == 0)
+      {
+        HalLedSet(HAL_LED_2,HAL_LED_MODE_OFF);
+      }
+      else
+      {
+        HalLedSet(HAL_LED_2,HAL_LED_MODE_ON);
+      }
+  }
+  else
+  {
+    // Error occurred in request to send.
+  }
+  
+  
+}
+
+
+协调器在接收到数据时，判断接收的数据并作出相应的状态
+    case SAMPLEAPP_FLASH_CLUSTERID: //收到组播数据
+      data = (uint8)pkt->cmd.Data[0];
+      if(data == 0)
+      {
+        HalLedSet(HAL_LED_2,HAL_LED_MODE_OFF);
+      }
+      else
+      {
+        HalLedSet(HAL_LED_2,HAL_LED_MODE_ON);
+      }
+      break;
+      
+################################################################################      
+
 
 在左边workspace目录下比较重要的两个文件夹分别是Zmain和App。我们开发主要在App文件
 夹进行，这也是用户自己添加自己代码的地方。主要修改SampleApp.c和SampleApp.h即可，
@@ -69,5 +131,3 @@ break;
 ******************************************************************************/
 uint8 osal_start_timerEx( uint8 taskID, uint16 event_id, uint16 timeout_value );
 
-
-终端定时向协调器发送信息，协调器将接收到的数据发送到串口

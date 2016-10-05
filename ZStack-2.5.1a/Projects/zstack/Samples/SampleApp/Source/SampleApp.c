@@ -129,6 +129,7 @@ endPointDesc_t SampleApp_epDesc;
 /*********************************************************************
  * LOCAL VARIABLES
  */
+uint8 LedState = 0;
 uint8 SampleApp_TaskID;   // Task ID for internal task/event processing
                           // This variable will be received when
                           // SampleApp_Init() is called.
@@ -245,7 +246,7 @@ void SampleApp_Init( uint8 task_id )
   RegisterForKeys( SampleApp_TaskID ); // µ«º«À˘”–µƒ∞¥º¸ ¬º˛
 
   // By default, all devices start out in Group 1
-  SampleApp_Group.ID = 0x0001;//◊È∫≈
+  SampleApp_Group.ID = SAMPLEAPP_FLASH_GROUP;//◊È∫≈
   osal_memcpy( SampleApp_Group.name, "Group 1", 7  );//…Ë∂®◊È√˚
   aps_AddGroup( SAMPLEAPP_ENDPOINT, &SampleApp_Group );//∞—∏√◊Èµ«º«ÃÌº”µΩAPS÷–
  
@@ -299,12 +300,10 @@ uint16 SampleApp_ProcessEvent( uint8 task_id, uint16 events )
           //if ( (SampleApp_NwkState == DEV_ZB_COORD)// µ—È÷––≠µ˜∆˜÷ªΩ” ’ ˝æ›À˘“‘»°œ˚∑¢ÀÕ ¬º˛
           if ( (SampleApp_NwkState == DEV_ROUTER) || (SampleApp_NwkState == DEV_END_DEVICE) )
           {
-            // Start sending the periodic message in a regular interval.
-            //’‚∏ˆ∂® ±∆˜÷ª «Œ™∑¢ÀÕ÷‹∆⁄–≈œ¢ø™∆Ùµƒ£¨…Ë±∏∆Ù∂Ø≥ı ºªØ∫Û¥”’‚¿Ôø™ º
-            //¥•∑¢µ⁄“ª∏ˆ÷‹∆⁄–≈œ¢µƒ∑¢ÀÕ£¨»ª∫Û÷‹∂¯∏¥ ºœ¬»•
-            osal_start_timerEx( SampleApp_TaskID,
-                              SAMPLEAPP_SEND_PERIODIC_MSG_EVT,
-                              SAMPLEAPP_SEND_PERIODIC_MSG_TIMEOUT );
+            //’‚∏ˆœÓƒø÷–√ª”– π”√÷‹∆⁄∫Ø ˝
+            //osal_start_timerEx( SampleApp_TaskID,
+            //                  SAMPLEAPP_SEND_PERIODIC_MSG_EVT,
+            //                  SAMPLEAPP_SEND_PERIODIC_MSG_TIMEOUT );
           }
           else
           {
@@ -369,15 +368,20 @@ void SampleApp_HandleKeys( uint8 shift, uint8 keys ) //¥À µ—È√ª”–”√µΩ£¨∫Û√Ê‘Ÿ∑÷Œ
 {
   (void)shift;  // Intentionally unreferenced parameter
   
-  if ( keys & HAL_KEY_SW_1 )
+  if ( keys & HAL_KEY_SW_6 )
   {
     /* This key sends the Flash Command is sent to Group 1.
      * This device will not receive the Flash Command from this
      * device (even if it belongs to group 1).
      */
-    SampleApp_SendFlashMessage( SAMPLEAPP_FLASH_DURATION );
+     #if defined(ZDO_COORDINATOR)  //–≠µ˜∆˜÷ªΩ” ’ ˝æ›
+     
+     #else                         //¬∑”…∆˜∫Õ÷’∂À≤≈ª·∑¢ÀÕ ˝æ›
+        SampleApp_SendFlashMessage(0); //“‘◊È≤•∑Ω Ω∑¢ÀÕ ˝æ›
+     #endif
   }
 
+  
   if ( keys & HAL_KEY_SW_2 )
   {
     /* The Flashr Command is sent to Group 1.
@@ -418,7 +422,7 @@ void SampleApp_HandleKeys( uint8 shift, uint8 keys ) //¥À µ—È√ª”–”√µΩ£¨∫Û√Ê‘Ÿ∑÷Œ
 //Ω” ’ ˝æ›£¨≤Œ ˝Œ™Ω” ’µΩµƒ ˝æ›
 void SampleApp_MessageMSGCB( afIncomingMSGPacket_t *pkt )
 {
-  uint16 flashTime;
+  uint8 data;
 
   switch ( pkt->clusterId ) //≈–∂œ¥ÿID
   {
@@ -429,8 +433,15 @@ void SampleApp_MessageMSGCB( afIncomingMSGPacket_t *pkt )
       break;
 
     case SAMPLEAPP_FLASH_CLUSTERID: // ’µΩ◊È≤• ˝æ›
-      flashTime = BUILD_UINT16(pkt->cmd.Data[1], pkt->cmd.Data[2] );
-      HalLedBlink( HAL_LED_4, 4, 50, (flashTime / 4) );
+      data = (uint8)pkt->cmd.Data[0];
+      if(data == 0)
+      {
+        HalLedSet(HAL_LED_2,HAL_LED_MODE_OFF);
+      }
+      else
+      {
+        HalLedSet(HAL_LED_2,HAL_LED_MODE_ON);
+      }
       break;
   }
 }
@@ -478,24 +489,32 @@ void SampleApp_SendPeriodicMessage( void )
  */
 void SampleApp_SendFlashMessage( uint16 flashTime ) //¥À µ—È√ª”–”√µΩ£¨∫Û√Ê‘Ÿ∑÷Œˆ
 {
-  uint8 buffer[3];
-  buffer[0] = (uint8)(SampleAppFlashCounter++);
-  buffer[1] = LO_UINT16( flashTime );
-  buffer[2] = HI_UINT16( flashTime );
+  LedState = ~LedState;
 
-  if ( AF_DataRequest( &SampleApp_Flash_DstAddr, &SampleApp_epDesc,
+  if ( AF_DataRequest( &SampleApp_Flash_DstAddr, 
+                       &SampleApp_epDesc,
                        SAMPLEAPP_FLASH_CLUSTERID,
-                       3,
-                       buffer,
+                       1,
+                       &LedState,
                        &SampleApp_TransID,
                        AF_DISCV_ROUTE,
                        AF_DEFAULT_RADIUS ) == afStatus_SUCCESS )
   {
+     if(LedState == 0)
+      {
+        HalLedSet(HAL_LED_2,HAL_LED_MODE_OFF);
+      }
+      else
+      {
+        HalLedSet(HAL_LED_2,HAL_LED_MODE_ON);
+      }
   }
   else
   {
     // Error occurred in request to send.
   }
+  
+  
 }
 
 /*********************************************************************

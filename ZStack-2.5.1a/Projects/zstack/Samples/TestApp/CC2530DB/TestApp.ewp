@@ -346,7 +346,7 @@
         </option>
         <option>
           <name>CCRequirePrototypes</name>
-          <state>1</state>
+          <state>0</state>
         </option>
         <option>
           <name>CCMultibyteSupport</name>
@@ -723,7 +723,7 @@
         </option>
         <option>
           <name>OutputFile</name>
-          <state>GenericApp.d51</state>
+          <state>TestApp.d51</state>
         </option>
         <option>
           <name>OutputFormat</name>
@@ -909,24 +909,24 @@
         </option>
         <option>
           <name>AllowExtraOutput</name>
-          <state>0</state>
+          <state>1</state>
         </option>
         <option>
           <name>GenerateExtraOutput</name>
-          <state>0</state>
+          <state>1</state>
         </option>
         <option>
           <name>XExtraOutOverride</name>
-          <state>0</state>
+          <state>1</state>
         </option>
         <option>
           <name>ExtraOutputFile</name>
-          <state>GenericApp.sim</state>
+          <state>Coord.hex</state>
         </option>
         <option>
           <name>ExtraOutputFormat</name>
           <version>11</version>
-          <state>60</state>
+          <state>23</state>
         </option>
         <option>
           <name>ExtraFormatVariant</name>
@@ -1781,7 +1781,7 @@
         </option>
         <option>
           <name>OutputFile</name>
-          <state>GenericApp.d51</state>
+          <state>SampleApp.d51</state>
         </option>
         <option>
           <name>OutputFormat</name>
@@ -1979,7 +1979,7 @@
         </option>
         <option>
           <name>ExtraOutputFile</name>
-          <state>GenericApp.sim</state>
+          <state>SampleApp.sim</state>
         </option>
         <option>
           <name>ExtraOutputFormat</name>
@@ -2395,8 +2395,7 @@
           <state>MT_TASK</state>
           <state>MT_SYS_FUNC</state>
           <state>MT_ZDO_FUNC</state>
-          <state>LCD_SUPPORTED=DEBUG</state>
-          <state>xPOWER_SAVING</state>
+          <state>LCD_SUPPORTED</state>
         </option>
         <option>
           <name>CCPreprocFile</name>
@@ -2464,7 +2463,7 @@
         </option>
         <option>
           <name>CCRequirePrototypes</name>
-          <state>1</state>
+          <state>0</state>
         </option>
         <option>
           <name>CCMultibyteSupport</name>
@@ -2841,7 +2840,7 @@
         </option>
         <option>
           <name>OutputFile</name>
-          <state>GenericApp.d51</state>
+          <state>SampleApp.d51</state>
         </option>
         <option>
           <name>OutputFormat</name>
@@ -3027,24 +3026,24 @@
         </option>
         <option>
           <name>AllowExtraOutput</name>
-          <state>0</state>
+          <state>1</state>
         </option>
         <option>
           <name>GenerateExtraOutput</name>
-          <state>0</state>
+          <state>1</state>
         </option>
         <option>
           <name>XExtraOutOverride</name>
-          <state>0</state>
+          <state>1</state>
         </option>
         <option>
           <name>ExtraOutputFile</name>
-          <state>GenericApp.sim</state>
+          <state>ED.hex</state>
         </option>
         <option>
           <name>ExtraOutputFormat</name>
           <version>11</version>
-          <state>60</state>
+          <state>23</state>
         </option>
         <option>
           <name>ExtraFormatVariant</name>
@@ -3181,13 +3180,22 @@
   <group>
     <name>App</name>
     <file>
-      <name>$PROJ_DIR$\..\Source\GenericApp.c</name>
+      <name>$PROJ_DIR$\..\Source\DHT11.C</name>
     </file>
     <file>
-      <name>$PROJ_DIR$\..\Source\GenericApp.h</name>
+      <name>$PROJ_DIR$\..\Source\DHT11.H</name>
     </file>
     <file>
-      <name>$PROJ_DIR$\..\Source\OSAL_GenericApp.c</name>
+      <name>$PROJ_DIR$\..\Source\OSAL_TestApp.c</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\Source\TestApp.c</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\Source\TestApp.h</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\..\Source\TestAppHw.h</name>
     </file>
   </group>
   <group>

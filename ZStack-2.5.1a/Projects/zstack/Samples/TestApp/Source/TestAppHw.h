@@ -1,12 +1,12 @@
 /**************************************************************************************************
-  Filename:       hal_led.h
-  Revised:        $Date: 2007-07-06 10:42:24 -0700 (Fri, 06 Jul 2007) $
-  Revision:       $Revision: 13579 $
+  Filename:       TestAppHw.h
+  Revised:        $Date: 2007-10-27 17:22:23 -0700 (Sat, 27 Oct 2007) $
+  Revision:       $Revision: 15795 $
 
-  Description:    This file contains the interface to the LED Service.
+  Description:    This file contains the Sample Application definitions.
 
 
-  Copyright 2005-2007 Texas Instruments Incorporated. All rights reserved.
+  Copyright 2007 Texas Instruments Incorporated. All rights reserved.
 
   IMPORTANT: Your use of this Software is limited to those specific rights
   granted under the terms of a software license agreement between the user
@@ -37,8 +37,8 @@
   contact Texas Instruments Incorporated at www.TI.com. 
 **************************************************************************************************/
 
-#ifndef HAL_LED_H
-#define HAL_LED_H
+#ifndef TESTAPPHW_H
+#define TESTAPPHW_H
 
 #ifdef __cplusplus
 extern "C"
@@ -48,74 +48,23 @@ extern "C"
 /*********************************************************************
  * INCLUDES
  */
-#include "hal_board.h"
+
+/*********************************************************************
+ * CONSTANTS
+ */
 
 /*********************************************************************
  * MACROS
  */
 
 /*********************************************************************
- * CONSTANTS
- */
-
-/* LEDS - The LED number is the same as the bit position */
-#define HAL_LED_1     0x01
-#define HAL_LED_2     0x02
-#define HAL_LED_3     0x04
-#define HAL_LED_4     0x08
-#define HAL_LED_ALL   (HAL_LED_1 | HAL_LED_2 | HAL_LED_3 | HAL_LED_4)
-
-/* Modes */
-#define  HAL_LED_MODE_OFF     0
-#define  HAL_LED_MODE_ON      1
-#define HAL_LED_MODE_BLINK   0x02
-#define HAL_LED_MODE_FLASH   0x04
-#define HAL_LED_MODE_TOGGLE  0x08
-
-/* Defaults */
-#define HAL_LED_DEFAULT_MAX_LEDS      4
-#define HAL_LED_DEFAULT_DUTY_CYCLE    5
-#define HAL_LED_DEFAULT_FLASH_COUNT   50
-#define HAL_LED_DEFAULT_FLASH_TIME    1000
-
-/*********************************************************************
- * TYPEDEFS
- */
-
-
-/*********************************************************************
- * GLOBAL VARIABLES
+ * FUNCTIONS
  */
 
 /*
- * Initialize LED Service.
+ * Read the Coordinator Jumper
  */
-extern void HalLedInit( void );
-
-/*
- * Set the LED ON/OFF/TOGGLE.
- */
-extern uint8 HalLedSet( uint8 led, uint8 mode );
-
-/*
- * Blink the LED.
- */
-extern void HalLedBlink( uint8 leds, uint8 cnt, uint8 duty, uint16 time );
-
-/*
- * Put LEDs in sleep state - store current values
- */
-extern void HalLedEnterSleep( void );
-
-/*
- * Retore LEDs from sleep state
- */
-extern void HalLedExitSleep( void );
-
-/*
- * Return LED state
- */
-extern uint8 HalLedGetState ( void );
+uint8 readCoordinatorJumper( void );
 
 /*********************************************************************
 *********************************************************************/
@@ -124,4 +73,4 @@ extern uint8 HalLedGetState ( void );
 }
 #endif
 
-#endif
+#endif /* TESTAPPHW_H */

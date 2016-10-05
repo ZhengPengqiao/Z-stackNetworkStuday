@@ -616,7 +616,7 @@
         </option>
         <option>
           <name>SimPspConfigFile</name>
-          <state>$TOOLKIT_DIR$\config\test.psp.config</state>
+          <state>###Uninitialized###</state>
         </option>
       </data>
     </settings>
@@ -1253,7 +1253,7 @@
         </option>
         <option>
           <name>SimPspConfigFile</name>
-          <state>$TOOLKIT_DIR$\config\test.psp.config</state>
+          <state>###Uninitialized###</state>
         </option>
       </data>
     </settings>
@@ -1890,7 +1890,7 @@
         </option>
         <option>
           <name>SimPspConfigFile</name>
-          <state>$TOOLKIT_DIR$\config\test.psp.config</state>
+          <state>###Uninitialized###</state>
         </option>
       </data>
     </settings>

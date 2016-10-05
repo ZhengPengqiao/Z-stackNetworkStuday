@@ -1,5 +1,5 @@
 /**************************************************************************************************
-  Filename:       OSAL_GenericApp.c
+  Filename:       OSAL_TestApp.c
   Revised:        $Date: 2008-02-07 12:10:00 -0800 (Thu, 07 Feb 2008) $
   Revision:       $Revision: 16360 $
 
@@ -7,7 +7,7 @@
                   that the user should set and change.
 
 
-  Copyright 2004-2007 Texas Instruments Incorporated. All rights reserved.
+  Copyright 2007 Texas Instruments Incorporated. All rights reserved.
 
   IMPORTANT: Your use of this Software is limited to those specific rights
   granted under the terms of a software license agreement between the user
@@ -62,14 +62,12 @@
   #include "aps_frag.h"
 #endif
 
-#include "GenericApp.h"
+#include "TestApp.h"
 
 /*********************************************************************
  * GLOBAL VARIABLES
  */
 
-//taskArr数组里面存放所有任务的任务处理函数，如果操作系统查询到了该任务的ID那么就
-//会调用对应的任务处理函数，该数组的顺序必须和osalInitTasks函数的初始化顺序相同。
 // The order in this table must be identical to the task initialization calls below in osalInitTask.
 const pTaskEventHandlerFn tasksArr[] = {
   macEventLoop,
@@ -86,7 +84,7 @@ const pTaskEventHandlerFn tasksArr[] = {
 #if defined ( ZIGBEE_FREQ_AGILITY ) || defined ( ZIGBEE_PANID_CONFLICT )
   ZDNwkMgr_event_loop,
 #endif
-  GenericApp_ProcessEvent
+  TestApp_ProcessEvent
 };
 
 const uint8 tasksCnt = sizeof( tasksArr ) / sizeof( tasksArr[0] );
@@ -105,30 +103,32 @@ uint16 *tasksEvents;
  *
  * @return  none
  */
-//完成了ID的分配，以及所有任务的初始化。GenericApp_Init(taskID);是自己任务初始化函数。
-//我们程序初始化部分都可以写在此函数中，具体详解在协调器程序中给出。
 void osalInitTasks( void )
 {
   uint8 taskID = 0;
 
+  // 分配内存，返回指向缓冲区的指针
   tasksEvents = (uint16 *)osal_mem_alloc( sizeof( uint16 ) * tasksCnt);
+  // 设置所分配的内存空间单元值为0
   osal_memset( tasksEvents, 0, (sizeof( uint16 ) * tasksCnt));
 
-  macTaskInit( taskID++ );
-  nwk_init( taskID++ );
-  Hal_Init( taskID++ );
+  // 任务优先级由高向低依次排列，高优先级对应taskID 的值反而小
+  macTaskInit( taskID++ );  //macTaskInit(0) ，用户不需考虑
+  nwk_init( taskID++ );     //nwk_init(1)，用户不需考虑
+  Hal_Init( taskID++ );     //Hal_Init(2) ，用户需考虑
 #if defined( MT_TASK )
   MT_TaskInit( taskID++ );
 #endif
-  APS_Init( taskID++ );
+  APS_Init( taskID++ );      //APS_Init(3) ，用户不需考虑
 #if defined ( ZIGBEE_FRAGMENTATION )
   APSF_Init( taskID++ );
 #endif
-  ZDApp_Init( taskID++ );
+  ZDApp_Init( taskID++ );    //ZDApp_Init(4) ，用户需考虑
 #if defined ( ZIGBEE_FREQ_AGILITY ) || defined ( ZIGBEE_PANID_CONFLICT )
   ZDNwkMgr_Init( taskID++ );
 #endif
-  GenericApp_Init( taskID );
+  //用户创建的任务
+  TestApp_Init( taskID );  // TestApp_Init _Init(5) ，用户需考虑
 }
 
 /*********************************************************************

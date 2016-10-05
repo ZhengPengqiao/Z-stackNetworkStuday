@@ -1,12 +1,12 @@
 /**************************************************************************************************
   Filename:       hal_key.c
-  Revised:        $Date: 2010-09-15 19:02:45 -0700 (Wed, 15 Sep 2010) $
-  Revision:       $Revision: 23815 $
+  Revised:        $Date: 2009-12-16 17:44:49 -0800 (Wed, 16 Dec 2009) $
+  Revision:       $Revision: 21351 $
 
   Description:    This file contains the interface to the HAL KEY Service.
 
 
-  Copyright 2006-2010 Texas Instruments Incorporated. All rights reserved.
+  Copyright 2006-2009 Texas Instruments Incorporated. All rights reserved.
 
   IMPORTANT: Your use of this Software is limited to those specific rights
   granted under the terms of a software license agreement between the user
@@ -22,7 +22,7 @@
   its documentation for any purpose.
 
   YOU FURTHER ACKNOWLEDGE AND AGREE THAT THE SOFTWARE AND DOCUMENTATION ARE
-  PROVIDED “AS IS” WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+  PROVIDED “AS IS?WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED,
   INCLUDING WITHOUT LIMITATION, ANY WARRANTY OF MERCHANTABILITY, TITLE,
   NON-INFRINGEMENT AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL
   TEXAS INSTRUMENTS OR ITS LICENSORS BE LIABLE OR OBLIGATED UNDER CONTRACT,
@@ -102,6 +102,7 @@
 #define HAL_KEY_FALLING_EDGE  1
 
 #define HAL_KEY_DEBOUNCE_VALUE  25
+#define HAL_KEY_POLLING_VALUE   100
 
 /* CPU port interrupt */
 #define HAL_KEY_CPU_PORT_0_IF P0IF
@@ -263,7 +264,7 @@ void HalKeyConfig (bool interruptEnable, halKeyCBack_t cback)
     /* Do this only after the hal_key is configured - to work with sleep stuff */
     if (HalKeyConfigured == TRUE)
     {
-      osal_stop_timerEx(Hal_TaskID, HAL_KEY_EVENT);  /* Cancel polling if active */
+      osal_stop_timerEx( Hal_TaskID, HAL_KEY_EVENT);  /* Cancel polling if active */
     }
   }
   else    /* Interrupts NOT enabled */
@@ -271,7 +272,7 @@ void HalKeyConfig (bool interruptEnable, halKeyCBack_t cback)
     HAL_KEY_SW_6_ICTL &= ~(HAL_KEY_SW_6_ICTLBIT); /* don't generate interrupt */
     HAL_KEY_SW_6_IEN &= ~(HAL_KEY_SW_6_IENBIT);   /* Clear interrupt enable bit */
 
-    osal_set_event(Hal_TaskID, HAL_KEY_EVENT);
+    osal_start_timerEx (Hal_TaskID, HAL_KEY_EVENT, HAL_KEY_POLLING_VALUE);    /* Kick off polling */
   }
 
   /* Key now is configured */
@@ -297,11 +298,11 @@ uint8 HalKeyRead ( void )
     keys |= HAL_KEY_SW_6;
   }
 
-  if ((HAL_KEY_JOY_MOVE_PORT & HAL_KEY_JOY_MOVE_BIT))  /* Key is active low */
+/*  if ((HAL_KEY_JOY_MOVE_PORT & HAL_KEY_JOY_MOVE_BIT))  // Key is active low 
   {
     keys |= halGetJoyKeyInput();
   }
-
+*/
   return keys;
 }
 
@@ -319,14 +320,20 @@ void HalKeyPoll (void)
 {
   uint8 keys = 0;
 
-  if ((HAL_KEY_JOY_MOVE_PORT & HAL_KEY_JOY_MOVE_BIT))  /* Key is active HIGH */
+/* if ((HAL_KEY_JOY_MOVE_PORT & HAL_KEY_JOY_MOVE_BIT))  // Key is active HIGH 
   {
     keys = halGetJoyKeyInput();
   }
-
-  /* If interrupts are not enabled, previous key status and current key status
-   * are compared to find out if a key has changed status.
-   */
+*/
+  if (!HAL_PUSH_BUTTON2())//S0
+  {
+    keys |= HAL_KEY_SW_1; 
+  }
+  if (!HAL_PUSH_BUTTON1())//S1 
+  {
+    keys |= HAL_KEY_SW_6; 
+  }
+  
   if (!Hal_KeyIntEnable)
   {
     if (keys == halKeySavedKeys)
@@ -340,11 +347,6 @@ void HalKeyPoll (void)
   else
   {
     /* Key interrupt handled here */
-  }
-
-  if (HAL_PUSH_BUTTON1())
-  {
-    keys |= HAL_KEY_SW_6;
   }
 
   /* Invoke Callback if new keys were depressed */
@@ -483,8 +485,6 @@ uint8 HalKeyExitSleep ( void )
  **************************************************************************************************/
 HAL_ISR_FUNCTION( halKeyPort0Isr, P0INT_VECTOR )
 {
-  HAL_ENTER_ISR();
-
   if (HAL_KEY_SW_6_PXIFG & HAL_KEY_SW_6_BIT)
   {
     halProcessKeyInterrupt();
@@ -496,9 +496,6 @@ HAL_ISR_FUNCTION( halKeyPort0Isr, P0INT_VECTOR )
   */
   HAL_KEY_SW_6_PXIFG = 0;
   HAL_KEY_CPU_PORT_0_IF = 0;
-  
-  CLEAR_SLEEP_MODE();
-  HAL_EXIT_ISR();
 }
 
 
@@ -513,8 +510,6 @@ HAL_ISR_FUNCTION( halKeyPort0Isr, P0INT_VECTOR )
  **************************************************************************************************/
 HAL_ISR_FUNCTION( halKeyPort2Isr, P2INT_VECTOR )
 {
-  HAL_ENTER_ISR();
-  
   if (HAL_KEY_JOY_MOVE_PXIFG & HAL_KEY_JOY_MOVE_BIT)
   {
     halProcessKeyInterrupt();
@@ -527,9 +522,6 @@ HAL_ISR_FUNCTION( halKeyPort2Isr, P2INT_VECTOR )
   */
   HAL_KEY_JOY_MOVE_PXIFG = 0;
   HAL_KEY_CPU_PORT_2_IF = 0;
-
-  CLEAR_SLEEP_MODE();
-  HAL_EXIT_ISR();
 }
 
 #else

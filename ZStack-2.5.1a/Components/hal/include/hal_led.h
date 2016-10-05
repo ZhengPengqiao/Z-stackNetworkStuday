@@ -66,11 +66,11 @@ extern "C"
 #define HAL_LED_ALL   (HAL_LED_1 | HAL_LED_2 | HAL_LED_3 | HAL_LED_4)
 
 /* Modes */
-#define  HAL_LED_MODE_OFF     0
-#define  HAL_LED_MODE_ON      1
-#define HAL_LED_MODE_BLINK   0x02
-#define HAL_LED_MODE_FLASH   0x04
-#define HAL_LED_MODE_TOGGLE  0x08
+#define HAL_LED_MODE_OFF     0x00  //关闭
+#define HAL_LED_MODE_ON      0x01  //打开
+#define HAL_LED_MODE_BLINK   0x02  //闪烁
+#define HAL_LED_MODE_FLASH   0x04  //
+#define HAL_LED_MODE_TOGGLE  0x08  //反转
 
 /* Defaults */
 #define HAL_LED_DEFAULT_MAX_LEDS      4
@@ -87,7 +87,7 @@ extern "C"
  * GLOBAL VARIABLES
  */
 
-/*
+/* 默认情况下已经被调用过了
  * Initialize LED Service.
  */
 extern void HalLedInit( void );

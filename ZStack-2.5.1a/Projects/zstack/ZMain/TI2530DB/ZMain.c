@@ -1,13 +1,13 @@
 /**************************************************************************************************
   Filename:       ZMain.c
-  Revised:        $Date: 2010-09-17 16:25:30 -0700 (Fri, 17 Sep 2010) $
-  Revision:       $Revision: 23835 $ V1.0 ALD Andy
+  Revised:        $Date: 2009-09-17 20:35:33 -0700 (Thu, 17 Sep 2009) $
+  Revision:       $Revision: 20782 $
 
   Description:    Startup and shutdown code for ZStack
   Notes:          This version targets the Chipcon CC2530
 
 
-  Copyright 2005-2010 Texas Instruments Incorporated. All rights reserved.
+  Copyright 2005-2009 Texas Instruments Incorporated. All rights reserved.
 
   IMPORTANT: Your use of this Software is limited to those specific rights
   granted under the terms of a software license agreement between the user
@@ -35,43 +35,76 @@
   (INCLUDING BUT NOT LIMITED TO ANY DEFENSE THEREOF), OR OTHER SIMILAR COSTS.
 
   Should you have any questions regarding your right to use this Software,
-  contact Texas Instruments Incorporated at https://aldsz.taobao.com
+  contact Texas Instruments Incorporated at www.TI.com.
 **************************************************************************************************/
 
 /*********************************************************************
  * INCLUDES
  */
 
-#ifndef NONWK
-#include "AF.h"
-#endif
-#include "hal_adc.h"
-#include "hal_flash.h"
-#include "hal_lcd.h"
-#include "hal_led.h"
-#include "hal_drivers.h"
-#include "OnBoard.h"
+#include "ZComDef.h"
 #include "OSAL.h"
 #include "OSAL_Nv.h"
-#include "ZComDef.h"
-#include "ZMAC.h" 
+#include "OnBoard.h"
+#include "ZMAC.h"
+
+#ifndef NONWK
+  #include "AF.h"
+#endif
+
+/* Hal */
+#include "hal_lcd.h"
+#include "hal_led.h"
+#include "hal_adc.h"
+#include "hal_drivers.h"
+#include "hal_assert.h"
+#include "hal_flash.h"
+
+/*********************************************************************
+ * MACROS
+ */
+
+/*********************************************************************
+ * CONSTANTS
+ */
+
+// Maximun number of Vdd samples checked before go on
+#define MAX_VDD_SAMPLES  3
+#define ZMAIN_VDD_LIMIT  HAL_ADC_VDD_LIMIT_4
+
+/*********************************************************************
+ * TYPEDEFS
+ */
+
+/*********************************************************************
+ * GLOBAL VARIABLES
+ */
+
+/*********************************************************************
+ * EXTERNAL VARIABLES
+ */
+
+/*********************************************************************
+ * EXTERNAL FUNCTIONS
+ */
+
+extern bool HalAdcCheckVdd (uint8 limit);
+
+/*********************************************************************
+ * LOCAL VARIABLES
+ */
 
 /*********************************************************************
  * LOCAL FUNCTIONS
  */
 
-static void zmain_ext_addr( void );
-#if defined ZCL_KEY_ESTABLISH
-static void zmain_cert_init( void );
-#endif
 static void zmain_dev_info( void );
+static void zmain_ext_addr( void );
 static void zmain_vdd_check( void );
 
 #ifdef LCD_SUPPORTED
 static void zmain_lcd_init( void );
 #endif
-
-extern uint8 AppTitle[]; //应用程序名称
 
 /*********************************************************************
  * @fn      main
@@ -81,7 +114,7 @@ extern uint8 AppTitle[]; //应用程序名称
 int main( void )
 {
   // Turn off interrupts
-  osal_int_disable( INTS_ALL );  //关闭所有中断
+  osal_int_disable( INTS_ALL ); //关闭所有中断
 
   // Initialization for board related stuff such as LEDs
   HAL_BOARD_INIT();             //初始化系统时钟
@@ -90,27 +123,22 @@ int main( void )
   zmain_vdd_check();            //检查芯片电压是否正常
 
   // Initialize board I/O
-  InitBoard( OB_COLD );         //初始化I/O,LED,Timer等
+  InitBoard( OB_COLD );         //初始化I/O ，LED 、Timer 等
 
   // Initialze HAL drivers
   HalDriverInit();              //初始化芯片各硬件模块
 
   // Initialize NV System
-  osal_nv_init( NULL );         //初始化Flash存储器
+  osal_nv_init( NULL );         //初始化Flash 存储器
 
   // Initialize the MAC
-  ZMacInit();                   //初始化MAC层
+  ZMacInit();                   //初始化MAC 层
 
   // Determine the extended address
   zmain_ext_addr();             //确定IEEE 64位地址
 
-#if defined ZCL_KEY_ESTABLISH  
-  // Initialize the Certicom certificate information.
-  zmain_cert_init();           //
-#endif
-
   // Initialize basic NV items
-  zgInit();                    //初始化非易失变量
+  zgInit();                     //初始化非易失变量
 
 #ifndef NONWK
   // Since the AF isn't a task, call it's initialization routine
@@ -118,20 +146,20 @@ int main( void )
 #endif
 
   // Initialize the operating system
-  osal_init_system();         //初始化操作系统
+  osal_init_system();           //初始化操作系统
 
   // Allow interrupts
-  osal_int_enable( INTS_ALL );   //使能全部中断
+  osal_int_enable( INTS_ALL );  //使能全部中断
 
   // Final board initialization
-  InitBoard( OB_READY );         //最终板载初始化
+  InitBoard( OB_READY );        //最终板载初始化
 
   // Display information about this device
-  zmain_dev_info();              //显示设备信息
+  zmain_dev_info();             //显示设备信息
 
   /* Display the device info on the LCD */
 #ifdef LCD_SUPPORTED
-  zmain_lcd_init();              //初始化LCD
+  zmain_lcd_init();             //初始化LCD
 #endif
 
 #ifdef WDT_IN_PM1
@@ -139,7 +167,7 @@ int main( void )
   WatchDogEnable( WDTIMX );
 #endif
 
-  osal_start_system(); // No Re turn from here 执行操作系统，进去后不会返回
+  osal_start_system(); // No Return from here 执行操作系统，进去后不会返回
 
   return 0;  // Shouldn't get here.
 } // main()
@@ -151,11 +179,38 @@ int main( void )
  *********************************************************************/
 static void zmain_vdd_check( void )
 {
-  uint8 cnt = 16;
-  
-  do {
-    while (!HalAdcCheckVdd(VDD_MIN_RUN));
-  } while (--cnt);
+  uint8 vdd_passed_count = 0;
+  bool toggle = 0;
+
+  // Repeat getting the sample until number of failures or successes hits MAX
+  // then based on the count value, determine if the device is ready or not
+  while ( vdd_passed_count < MAX_VDD_SAMPLES )
+  {
+    if ( HalAdcCheckVdd (ZMAIN_VDD_LIMIT) )
+    {
+      vdd_passed_count++;    // Keep track # times Vdd passes in a row
+      MicroWait (10000);     // Wait 10ms to try again
+    }
+    else
+    {
+      vdd_passed_count = 0;  // Reset passed counter
+      MicroWait (50000);     // Wait 50ms
+      MicroWait (50000);     // Wait another 50ms to try again
+    }
+
+    /* toggle LED1 and LED2 */
+    if (vdd_passed_count == 0)
+    {
+      if ((toggle = !(toggle)))
+        HAL_TOGGLE_LED1();
+      else
+        HAL_TOGGLE_LED2();
+    }
+  }
+
+  /* turn off LED1 */
+  HAL_TURN_OFF_LED1();
+  HAL_TURN_OFF_LED2();
 }
 
 /**************************************************************************************************
@@ -237,63 +292,6 @@ static void zmain_ext_addr(void)
   (void)ZMacSetReq(MAC_EXTENDED_ADDRESS, aExtendedAddress);
 }
 
-#if defined ZCL_KEY_ESTABLISH
-/**************************************************************************************************
- * @fn          zmain_cert_init
- *
- * @brief       Initialize the Certicom certificate information.
- *
- * input parameters
- *
- * None.
- *
- * output parameters
- *
- * None.
- *
- * @return      None.
- **************************************************************************************************
- */
-static void zmain_cert_init(void)
-{
-  uint8 certData[ZCL_KE_IMPLICIT_CERTIFICATE_LEN];
-  uint8 nullData[ZCL_KE_IMPLICIT_CERTIFICATE_LEN] = {
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
-  };
-
-  (void)osal_nv_item_init(ZCD_NV_IMPLICIT_CERTIFICATE, ZCL_KE_IMPLICIT_CERTIFICATE_LEN, NULL);
-  (void)osal_nv_item_init(ZCD_NV_DEVICE_PRIVATE_KEY, ZCL_KE_DEVICE_PRIVATE_KEY_LEN, NULL);
-
-  // First check whether non-null certificate data exists in the OSAL NV. To save on code space,
-  // just use the ZCD_NV_CA_PUBLIC_KEY as the bellwether for all three.
-  if ((SUCCESS != osal_nv_item_init(ZCD_NV_CA_PUBLIC_KEY, ZCL_KE_CA_PUBLIC_KEY_LEN, NULL))    ||
-      (SUCCESS != osal_nv_read(ZCD_NV_CA_PUBLIC_KEY, 0, ZCL_KE_CA_PUBLIC_KEY_LEN, certData))  ||
-      (osal_memcmp(certData, nullData, ZCL_KE_CA_PUBLIC_KEY_LEN)))
-  {
-    // Attempt to read the certificate data from its corresponding location on the lock bits page.
-    HalFlashRead(HAL_FLASH_IEEE_PAGE, HAL_FLASH_CA_PUBLIC_KEY_OSET, certData,
-                                         ZCL_KE_CA_PUBLIC_KEY_LEN);
-    // If the certificate data is not NULL, use it to update the corresponding NV items.
-    if (!osal_memcmp(certData, nullData, ZCL_KE_CA_PUBLIC_KEY_LEN))
-    {
-      (void)osal_nv_write(ZCD_NV_CA_PUBLIC_KEY, 0, ZCL_KE_CA_PUBLIC_KEY_LEN, certData);
-      HalFlashRead(HAL_FLASH_IEEE_PAGE, HAL_FLASH_IMPLICIT_CERT_OSET, certData,
-                                           ZCL_KE_IMPLICIT_CERTIFICATE_LEN);
-      (void)osal_nv_write(ZCD_NV_IMPLICIT_CERTIFICATE, 0,
-                          ZCL_KE_IMPLICIT_CERTIFICATE_LEN, certData);
-      HalFlashRead(HAL_FLASH_IEEE_PAGE, HAL_FLASH_DEV_PRIVATE_KEY_OSET, certData,
-                                        ZCL_KE_DEVICE_PRIVATE_KEY_LEN);
-      (void)osal_nv_write(ZCD_NV_DEVICE_PRIVATE_KEY, 0, ZCL_KE_DEVICE_PRIVATE_KEY_LEN, certData);
-    }
-  }
-}
-#endif
-
 /**************************************************************************************************
  * @fn          zmain_dev_info
  *
@@ -333,7 +331,6 @@ static void zmain_dev_info(void)
   HalLcdWriteString( (char*)lcd_buf, HAL_LCD_LINE_2 );
 #endif
 }
-
 
 #ifdef LCD_SUPPORTED
 /*********************************************************************

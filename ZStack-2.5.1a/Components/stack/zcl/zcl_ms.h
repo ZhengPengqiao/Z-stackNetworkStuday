@@ -1,12 +1,12 @@
 /**************************************************************************************************
   Filename:       zcl_ms.h
-  Revised:        $Date: 2010-02-09 15:28:14 -0800 (Tue, 09 Feb 2010) $
-  Revision:       $Revision: 21679 $
+  Revised:        $Date: 2006-09-08 15:51:21 -0700 (Fri, 08 Sep 2006) $
+  Revision:       $Revision: 11934 $
 
   Description:    This file contains the ZCL Measurement and Sensing Definitions
 
 
-  Copyright 2006-2010 Texas Instruments Incorporated. All rights reserved.
+  Copyright 2006-2007 Texas Instruments Incorporated. All rights reserved.
 
   IMPORTANT: Your use of this Software is limited to those specific rights
   granted under the terms of a software license agreement between the user

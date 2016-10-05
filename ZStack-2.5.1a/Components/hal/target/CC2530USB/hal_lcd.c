@@ -1,222 +1,188 @@
-/**************************************************************************************************
-  Filename:       hal_lcd.c
-  Revised:        $Date: 2010-02-25 12:33:58 -0800 (Thu, 25 Feb 2010) $
-  Revision:       $Revision: 21797 $
-
-  Description:    This file contains the interface to the HAL LCD Service.
-
-
-  Copyright 2007-2010 Texas Instruments Incorporated. All rights reserved.
-
-  IMPORTANT: Your use of this Software is limited to those specific rights
-  granted under the terms of a software license agreement between the user
-  who downloaded the software, his/her employer (which must be your employer)
-  and Texas Instruments Incorporated (the "License").  You may not use this
-  Software unless you agree to abide by the terms of the License. The License
-  limits your use, and you acknowledge, that the Software may not be modified,
-  copied or distributed unless embedded on a Texas Instruments microcontroller
-  or used solely and exclusively in conjunction with a Texas Instruments radio
-  frequency transceiver, which is integrated into your product.  Other than for
-  the foregoing purpose, you may not use, reproduce, copy, prepare derivative
-  works of, modify, distribute, perform, display or sell this Software and/or
-  its documentation for any purpose.
-
-  YOU FURTHER ACKNOWLEDGE AND AGREE THAT THE SOFTWARE AND DOCUMENTATION ARE
-  PROVIDED “AS IS” WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED,
-  INCLUDING WITHOUT LIMITATION, ANY WARRANTY OF MERCHANTABILITY, TITLE,
-  NON-INFRINGEMENT AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL
-  TEXAS INSTRUMENTS OR ITS LICENSORS BE LIABLE OR OBLIGATED UNDER CONTRACT,
-  NEGLIGENCE, STRICT LIABILITY, CONTRIBUTION, BREACH OF WARRANTY, OR OTHER
-  LEGAL EQUITABLE THEORY ANY DIRECT OR INDIRECT DAMAGES OR EXPENSES
-  INCLUDING BUT NOT LIMITED TO ANY INCIDENTAL, SPECIAL, INDIRECT, PUNITIVE
-  OR CONSEQUENTIAL DAMAGES, LOST PROFITS OR LOST DATA, COST OF PROCUREMENT
-  OF SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
-  (INCLUDING BUT NOT LIMITED TO ANY DEFENSE THEREOF), OR OTHER SIMILAR COSTS.
-
-  Should you have any questions regarding your right to use this Software,
-  contact Texas Instruments Incorporated at www.TI.com.
-**************************************************************************************************/
-
-/**************************************************************************************************
- *                                           INCLUDES
- **************************************************************************************************/
+/****************************************************************************
+* Filename: hal_lcd.c
+* Author:      Andy
+* Date:        2013-01-11
+* Version:     1.0
+* Description: OLED driver
+****************************************************************************/
 #include "hal_types.h"
 #include "hal_lcd.h"
 #include "OSAL.h"
 #include "OnBoard.h"
 #include "hal_assert.h"
+#include <string.h>
 
 #if defined (ZTOOL_P1) || defined (ZTOOL_P2)
   #include "DebugTrace.h"
 #endif
 
-/**************************************************************************************************
- *                                          CONSTANTS
- **************************************************************************************************/
-/*
-  LCD pins
+#define LCD_SCL P1_2       //SCLK  Ê±ÖÓ D0£¨SCLK£©
+#define LCD_SDA P1_3       //SDA   D1£¨MOSI£© Êý¾Ý
+#define LCD_RST P1_7       //_RES  hardware reset   ¸´Î» 
+#define LCD_DC  P0_0       //A0  H/L ÃüÁîÊý¾ÝÑ¡Í¨¶Ë£¬H£ºÊý¾Ý£¬L:ÃüÁî
 
-  //control
-  P0.0 - LCD_MODE
-  P1.1 - LCD_FLASH_RESET
-  P1.2 - LCD_CS
+#define XLevelL            0x00
+#define XLevelH            0x10
+#define XLevel             ((XLevelH&0x0F)*16+XLevelL)
+#define Max_Column         128
+#define Max_Row            64
+#define Brightness         0xCF 
+#define X_WIDTH            128
+#define Y_WIDTH            64
 
-  //spi
-  P1.5 - CLK
-  P1.6 - MOSI
-  P1.7 - MISO
-*/
-
-/* LCD Control lines */
-#define HAL_LCD_MODE_PORT 0
-#define HAL_LCD_MODE_PIN  0
-
-#define HAL_LCD_RESET_PORT 1
-#define HAL_LCD_RESET_PIN  1
-
-#define HAL_LCD_CS_PORT 1
-#define HAL_LCD_CS_PIN  2
-
-/* LCD SPI lines */
-#define HAL_LCD_CLK_PORT 1
-#define HAL_LCD_CLK_PIN  5
-
-#define HAL_LCD_MOSI_PORT 1
-#define HAL_LCD_MOSI_PIN  6
-
-#define HAL_LCD_MISO_PORT 1
-#define HAL_LCD_MISO_PIN  7
-
-/* SPI settings */
-#define HAL_SPI_CLOCK_POL_LO       0x00
-#define HAL_SPI_CLOCK_PHA_0        0x00
-#define HAL_SPI_TRANSFER_MSB_FIRST 0x20
-
-/* LCD lines */
-#define LCD_MAX_LINE_COUNT              3
-#define LCD_MAX_LINE_LENGTH             16
-#define LCD_MAX_BUF                     25
-
-/* Defines for HW LCD */
-
-/* Set power save mode */
-#define OSC_OFF                         0x00
-#define OSC_ON                          0x01
-#define POWER_SAVE_OFF                  0x00
-#define POWER_SAVE_ON                   0x02
-#define SET_POWER_SAVE_MODE(options)    HalLcd_HW_Control(0x0C | (options))
-
-/* Function Set */
-#define CGROM                           0x00
-#define CGRAM                           0x01
-#define COM_FORWARD                     0x00
-#define COM_BACKWARD                    0x02
-#define TWO_LINE                        0x00
-#define THREE_LINE                      0x04
-#define FUNCTION_SET(options)           HalLcd_HW_Control(0x10 | (options))
-
-/* Set Display Start Line */
-#define LINE1                           0x00
-#define LINE2                           0x01
-#define LINE3                           0x02
-#define LINE4                           0x03
-#define SET_DISPLAY_START_LINE(line)    HalLcd_HW_Control(0x18 | (line))
-
-/* Bias control */
-#define BIAS_1_5                        0x00
-#define BIAS_1_4                        0x01
-#define SET_BIAS_CTRL(bias)             HalLcd_HW_Control(0x1C | (bias))
-
-/* Power control */
-#define VOLTAGE_DIVIDER_OFF             0x00
-#define VOLTAGE_DIVIDER_ON              0x01
-#define CONVERTER_AND_REG_OFF           0x00
-#define CONVERTER_AND_REG_ON            0x04
-#define SET_POWER_CTRL(options)         HalLcd_HW_Control(0x20 | (options))
-
-// Set display control
-#define DISPLAY_CTRL_ON                 0x01
-#define DISPLAY_CTRL_OFF                0x00
-#define DISPLAY_CTRL_BLINK_ON           0x02
-#define DISPLAY_CTRL_BLINK_OFF          0x00
-#define DISPLAY_CTRL_CURSOR_ON          0x04
-#define DISPLAY_CTRL_CURSOR_OFF         0x00
-#define SET_DISPLAY_CTRL(options)       HalLcd_HW_Control(0x28 | (options))
-
-/* Set DD/ CGRAM address */
-#define SET_DDRAM_ADDR(charIndex)       HalLcd_HW_Control(0x80 | (charIndex))
-#define SET_GCRAM_CHAR(specIndex)       HalLcd_HW_Control(0xC0 | (specIndex))
-
-/* Set ICONRAM address */
-#define CONTRAST_CTRL_REGISTER          0x10
-#define SET_ICONRAM_ADDR(addr)          HalLcd_HW_Control(0x40 | (addr))
-
-/* Set double height */
-#define LINE_1_AND_2                    0x01
-#define LINE_2_AND_3                    0x02
-#define NORMAL_DISPLAY                  0x00
-#define SET_DOUBLE_HEIGHT(options)      HalLcd_HW_Control(0x08 | (options))
-
-/**************************************************************************************************
- *                                           MACROS
- **************************************************************************************************/
-
-#define HAL_IO_SET(port, pin, val)        HAL_IO_SET_PREP(port, pin, val)
-#define HAL_IO_SET_PREP(port, pin, val)   st( P##port##_##pin## = val; )
-
-#define HAL_CONFIG_IO_OUTPUT(port, pin, val)      HAL_CONFIG_IO_OUTPUT_PREP(port, pin, val)
-#define HAL_CONFIG_IO_OUTPUT_PREP(port, pin, val) st( P##port##SEL &= ~BV(pin); \
-                                                      P##port##_##pin## = val; \
-                                                      P##port##DIR |= BV(pin); )
-
-#define HAL_CONFIG_IO_PERIPHERAL(port, pin)      HAL_CONFIG_IO_PERIPHERAL_PREP(port, pin)
-#define HAL_CONFIG_IO_PERIPHERAL_PREP(port, pin) st( P##port##SEL |= BV(pin); )
+#define LCD_MAX_BUF        25
+#define HAL_LCD_MAX_CHARS  16   // Max number of chars on a single LCD line 
 
 
+const unsigned char F8X16[]=	  
+{
+  0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,// 0
+  0x00,0x00,0x00,0xF8,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x33,0x30,0x00,0x00,0x00,//! 1
+  0x00,0x10,0x0C,0x06,0x10,0x0C,0x06,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,//" 2
+  0x40,0xC0,0x78,0x40,0xC0,0x78,0x40,0x00,0x04,0x3F,0x04,0x04,0x3F,0x04,0x04,0x00,//# 3
+  0x00,0x70,0x88,0xFC,0x08,0x30,0x00,0x00,0x00,0x18,0x20,0xFF,0x21,0x1E,0x00,0x00,//$ 4
+  0xF0,0x08,0xF0,0x00,0xE0,0x18,0x00,0x00,0x00,0x21,0x1C,0x03,0x1E,0x21,0x1E,0x00,//% 5
+  0x00,0xF0,0x08,0x88,0x70,0x00,0x00,0x00,0x1E,0x21,0x23,0x24,0x19,0x27,0x21,0x10,//& 6
+  0x10,0x16,0x0E,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,//' 7
+  0x00,0x00,0x00,0xE0,0x18,0x04,0x02,0x00,0x00,0x00,0x00,0x07,0x18,0x20,0x40,0x00,//( 8
+  0x00,0x02,0x04,0x18,0xE0,0x00,0x00,0x00,0x00,0x40,0x20,0x18,0x07,0x00,0x00,0x00,//) 9
+  0x40,0x40,0x80,0xF0,0x80,0x40,0x40,0x00,0x02,0x02,0x01,0x0F,0x01,0x02,0x02,0x00,//* 10
+  0x00,0x00,0x00,0xF0,0x00,0x00,0x00,0x00,0x01,0x01,0x01,0x1F,0x01,0x01,0x01,0x00,//+ 11
+  0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x80,0xB0,0x70,0x00,0x00,0x00,0x00,0x00,//, 12
+  0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x01,0x01,0x01,0x01,0x01,0x01,0x01,//- 13
+  0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x30,0x30,0x00,0x00,0x00,0x00,0x00,//. 14
+  0x00,0x00,0x00,0x00,0x80,0x60,0x18,0x04,0x00,0x60,0x18,0x06,0x01,0x00,0x00,0x00,/// 15
+  0x00,0xE0,0x10,0x08,0x08,0x10,0xE0,0x00,0x00,0x0F,0x10,0x20,0x20,0x10,0x0F,0x00,//0 16
+  0x00,0x10,0x10,0xF8,0x00,0x00,0x00,0x00,0x00,0x20,0x20,0x3F,0x20,0x20,0x00,0x00,//1 17
+  0x00,0x70,0x08,0x08,0x08,0x88,0x70,0x00,0x00,0x30,0x28,0x24,0x22,0x21,0x30,0x00,//2 18
+  0x00,0x30,0x08,0x88,0x88,0x48,0x30,0x00,0x00,0x18,0x20,0x20,0x20,0x11,0x0E,0x00,//3 19
+  0x00,0x00,0xC0,0x20,0x10,0xF8,0x00,0x00,0x00,0x07,0x04,0x24,0x24,0x3F,0x24,0x00,//4 20
+  0x00,0xF8,0x08,0x88,0x88,0x08,0x08,0x00,0x00,0x19,0x21,0x20,0x20,0x11,0x0E,0x00,//5 21
+  0x00,0xE0,0x10,0x88,0x88,0x18,0x00,0x00,0x00,0x0F,0x11,0x20,0x20,0x11,0x0E,0x00,//6 22
+  0x00,0x38,0x08,0x08,0xC8,0x38,0x08,0x00,0x00,0x00,0x00,0x3F,0x00,0x00,0x00,0x00,//7 23
+  0x00,0x70,0x88,0x08,0x08,0x88,0x70,0x00,0x00,0x1C,0x22,0x21,0x21,0x22,0x1C,0x00,//8 24
+  0x00,0xE0,0x10,0x08,0x08,0x10,0xE0,0x00,0x00,0x00,0x31,0x22,0x22,0x11,0x0F,0x00,//9 25
+  0x00,0x00,0x00,0xC0,0xC0,0x00,0x00,0x00,0x00,0x00,0x00,0x30,0x30,0x00,0x00,0x00,//: 26
+  0x00,0x00,0x00,0x80,0x00,0x00,0x00,0x00,0x00,0x00,0x80,0x60,0x00,0x00,0x00,0x00,//; 27
+  0x00,0x00,0x80,0x40,0x20,0x10,0x08,0x00,0x00,0x01,0x02,0x04,0x08,0x10,0x20,0x00,//< 28
+  0x40,0x40,0x40,0x40,0x40,0x40,0x40,0x00,0x04,0x04,0x04,0x04,0x04,0x04,0x04,0x00,//= 29
+  0x00,0x08,0x10,0x20,0x40,0x80,0x00,0x00,0x00,0x20,0x10,0x08,0x04,0x02,0x01,0x00,//> 30
+  0x00,0x70,0x48,0x08,0x08,0x08,0xF0,0x00,0x00,0x00,0x00,0x30,0x36,0x01,0x00,0x00,//? 31
+  0xC0,0x30,0xC8,0x28,0xE8,0x10,0xE0,0x00,0x07,0x18,0x27,0x24,0x23,0x14,0x0B,0x00,//@ 32
+  0x00,0x00,0xC0,0x38,0xE0,0x00,0x00,0x00,0x20,0x3C,0x23,0x02,0x02,0x27,0x38,0x20,//A 33
+  0x08,0xF8,0x88,0x88,0x88,0x70,0x00,0x00,0x20,0x3F,0x20,0x20,0x20,0x11,0x0E,0x00,//B 34
+  0xC0,0x30,0x08,0x08,0x08,0x08,0x38,0x00,0x07,0x18,0x20,0x20,0x20,0x10,0x08,0x00,//C 35
+  0x08,0xF8,0x08,0x08,0x08,0x10,0xE0,0x00,0x20,0x3F,0x20,0x20,0x20,0x10,0x0F,0x00,//D 36
+  0x08,0xF8,0x88,0x88,0xE8,0x08,0x10,0x00,0x20,0x3F,0x20,0x20,0x23,0x20,0x18,0x00,//E 37
+  0x08,0xF8,0x88,0x88,0xE8,0x08,0x10,0x00,0x20,0x3F,0x20,0x00,0x03,0x00,0x00,0x00,//F 38
+  0xC0,0x30,0x08,0x08,0x08,0x38,0x00,0x00,0x07,0x18,0x20,0x20,0x22,0x1E,0x02,0x00,//G 39
+  0x08,0xF8,0x08,0x00,0x00,0x08,0xF8,0x08,0x20,0x3F,0x21,0x01,0x01,0x21,0x3F,0x20,//H 40
+  0x00,0x08,0x08,0xF8,0x08,0x08,0x00,0x00,0x00,0x20,0x20,0x3F,0x20,0x20,0x00,0x00,//I 41
+  0x00,0x00,0x08,0x08,0xF8,0x08,0x08,0x00,0xC0,0x80,0x80,0x80,0x7F,0x00,0x00,0x00,//J 42
+  0x08,0xF8,0x88,0xC0,0x28,0x18,0x08,0x00,0x20,0x3F,0x20,0x01,0x26,0x38,0x20,0x00,//K 43
+  0x08,0xF8,0x08,0x00,0x00,0x00,0x00,0x00,0x20,0x3F,0x20,0x20,0x20,0x20,0x30,0x00,//L 44
+  0x08,0xF8,0xF8,0x00,0xF8,0xF8,0x08,0x00,0x20,0x3F,0x00,0x3F,0x00,0x3F,0x20,0x00,//M 45
+  0x08,0xF8,0x30,0xC0,0x00,0x08,0xF8,0x08,0x20,0x3F,0x20,0x00,0x07,0x18,0x3F,0x00,//N 46
+  0xE0,0x10,0x08,0x08,0x08,0x10,0xE0,0x00,0x0F,0x10,0x20,0x20,0x20,0x10,0x0F,0x00,//O 47
+  0x08,0xF8,0x08,0x08,0x08,0x08,0xF0,0x00,0x20,0x3F,0x21,0x01,0x01,0x01,0x00,0x00,//P 48
+  0xE0,0x10,0x08,0x08,0x08,0x10,0xE0,0x00,0x0F,0x18,0x24,0x24,0x38,0x50,0x4F,0x00,//Q 49
+  0x08,0xF8,0x88,0x88,0x88,0x88,0x70,0x00,0x20,0x3F,0x20,0x00,0x03,0x0C,0x30,0x20,//R 50
+  0x00,0x70,0x88,0x08,0x08,0x08,0x38,0x00,0x00,0x38,0x20,0x21,0x21,0x22,0x1C,0x00,//S 51
+  0x18,0x08,0x08,0xF8,0x08,0x08,0x18,0x00,0x00,0x00,0x20,0x3F,0x20,0x00,0x00,0x00,//T 52
+  0x08,0xF8,0x08,0x00,0x00,0x08,0xF8,0x08,0x00,0x1F,0x20,0x20,0x20,0x20,0x1F,0x00,//U 53
+  0x08,0x78,0x88,0x00,0x00,0xC8,0x38,0x08,0x00,0x00,0x07,0x38,0x0E,0x01,0x00,0x00,//V 54
+  0xF8,0x08,0x00,0xF8,0x00,0x08,0xF8,0x00,0x03,0x3C,0x07,0x00,0x07,0x3C,0x03,0x00,//W 55
+  0x08,0x18,0x68,0x80,0x80,0x68,0x18,0x08,0x20,0x30,0x2C,0x03,0x03,0x2C,0x30,0x20,//X 56
+  0x08,0x38,0xC8,0x00,0xC8,0x38,0x08,0x00,0x00,0x00,0x20,0x3F,0x20,0x00,0x00,0x00,//Y 57
+  0x10,0x08,0x08,0x08,0xC8,0x38,0x08,0x00,0x20,0x38,0x26,0x21,0x20,0x20,0x18,0x00,//Z 58
+  0x00,0x00,0x00,0xFE,0x02,0x02,0x02,0x00,0x00,0x00,0x00,0x7F,0x40,0x40,0x40,0x00,//[ 59
+  0x00,0x0C,0x30,0xC0,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x01,0x06,0x38,0xC0,0x00,//\ 60
+  0x00,0x02,0x02,0x02,0xFE,0x00,0x00,0x00,0x00,0x40,0x40,0x40,0x7F,0x00,0x00,0x00,//] 61
+  0x00,0x00,0x04,0x02,0x02,0x02,0x04,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,//^ 62
+  0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x80,//_ 63
+  0x00,0x02,0x02,0x04,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,//` 64
+  0x00,0x00,0x80,0x80,0x80,0x80,0x00,0x00,0x00,0x19,0x24,0x22,0x22,0x22,0x3F,0x20,//a 65
+  0x08,0xF8,0x00,0x80,0x80,0x00,0x00,0x00,0x00,0x3F,0x11,0x20,0x20,0x11,0x0E,0x00,//b 66
+  0x00,0x00,0x00,0x80,0x80,0x80,0x00,0x00,0x00,0x0E,0x11,0x20,0x20,0x20,0x11,0x00,//c 67
+  0x00,0x00,0x00,0x80,0x80,0x88,0xF8,0x00,0x00,0x0E,0x11,0x20,0x20,0x10,0x3F,0x20,//d 68
+  0x00,0x00,0x80,0x80,0x80,0x80,0x00,0x00,0x00,0x1F,0x22,0x22,0x22,0x22,0x13,0x00,//e 69
+  0x00,0x80,0x80,0xF0,0x88,0x88,0x88,0x18,0x00,0x20,0x20,0x3F,0x20,0x20,0x00,0x00,//f 70
+  0x00,0x00,0x80,0x80,0x80,0x80,0x80,0x00,0x00,0x6B,0x94,0x94,0x94,0x93,0x60,0x00,//g 71
+  0x08,0xF8,0x00,0x80,0x80,0x80,0x00,0x00,0x20,0x3F,0x21,0x00,0x00,0x20,0x3F,0x20,//h 72
+  0x00,0x80,0x98,0x98,0x00,0x00,0x00,0x00,0x00,0x20,0x20,0x3F,0x20,0x20,0x00,0x00,//i 73
+  0x00,0x00,0x00,0x80,0x98,0x98,0x00,0x00,0x00,0xC0,0x80,0x80,0x80,0x7F,0x00,0x00,//j 74
+  0x08,0xF8,0x00,0x00,0x80,0x80,0x80,0x00,0x20,0x3F,0x24,0x02,0x2D,0x30,0x20,0x00,//k 75
+  0x00,0x08,0x08,0xF8,0x00,0x00,0x00,0x00,0x00,0x20,0x20,0x3F,0x20,0x20,0x00,0x00,//l 76
+  0x80,0x80,0x80,0x80,0x80,0x80,0x80,0x00,0x20,0x3F,0x20,0x00,0x3F,0x20,0x00,0x3F,//m 77
+  0x80,0x80,0x00,0x80,0x80,0x80,0x00,0x00,0x20,0x3F,0x21,0x00,0x00,0x20,0x3F,0x20,//n 78
+  0x00,0x00,0x80,0x80,0x80,0x80,0x00,0x00,0x00,0x1F,0x20,0x20,0x20,0x20,0x1F,0x00,//o 79
+  0x80,0x80,0x00,0x80,0x80,0x00,0x00,0x00,0x80,0xFF,0xA1,0x20,0x20,0x11,0x0E,0x00,//p 80
+  0x00,0x00,0x00,0x80,0x80,0x80,0x80,0x00,0x00,0x0E,0x11,0x20,0x20,0xA0,0xFF,0x80,//q 81
+  0x80,0x80,0x80,0x00,0x80,0x80,0x80,0x00,0x20,0x20,0x3F,0x21,0x20,0x00,0x01,0x00,//r 82
+  0x00,0x00,0x80,0x80,0x80,0x80,0x80,0x00,0x00,0x33,0x24,0x24,0x24,0x24,0x19,0x00,//s 83
+  0x00,0x80,0x80,0xE0,0x80,0x80,0x00,0x00,0x00,0x00,0x00,0x1F,0x20,0x20,0x00,0x00,//t 84
+  0x80,0x80,0x00,0x00,0x00,0x80,0x80,0x00,0x00,0x1F,0x20,0x20,0x20,0x10,0x3F,0x20,//u 85
+  0x80,0x80,0x80,0x00,0x00,0x80,0x80,0x80,0x00,0x01,0x0E,0x30,0x08,0x06,0x01,0x00,//v 86
+  0x80,0x80,0x00,0x80,0x00,0x80,0x80,0x80,0x0F,0x30,0x0C,0x03,0x0C,0x30,0x0F,0x00,//w 87
+  0x00,0x80,0x80,0x00,0x80,0x80,0x80,0x00,0x00,0x20,0x31,0x2E,0x0E,0x31,0x20,0x00,//x 88
+  0x80,0x80,0x80,0x00,0x00,0x80,0x80,0x80,0x80,0x81,0x8E,0x70,0x18,0x06,0x01,0x00,//y 89
+  0x00,0x80,0x80,0x80,0x80,0x80,0x80,0x00,0x00,0x21,0x30,0x2C,0x22,0x21,0x30,0x00,//z 90
+  0x00,0x00,0x00,0x00,0x80,0x7C,0x02,0x02,0x00,0x00,0x00,0x00,0x00,0x3F,0x40,0x40,//{ 91
+  0x00,0x00,0x00,0x00,0xFF,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xFF,0x00,0x00,0x00,//| 92
+  0x00,0x02,0x02,0x7C,0x80,0x00,0x00,0x00,0x00,0x40,0x40,0x3F,0x00,0x00,0x00,0x00,//} 93
+  0x00,0x06,0x01,0x01,0x02,0x02,0x04,0x04,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,//~ 94
+};
 
-/* SPI interface control */
-#define LCD_SPI_BEGIN()     HAL_IO_SET(HAL_LCD_CS_PORT,  HAL_LCD_CS_PIN,  0); /* chip select */
-#define LCD_SPI_END()                                                         \
-{                                                                             \
-  asm("NOP");                                                                 \
-  asm("NOP");                                                                 \
-  asm("NOP");                                                                 \
-  asm("NOP");                                                                 \
-  HAL_IO_SET(HAL_LCD_CS_PORT,  HAL_LCD_CS_PIN,  1); /* chip select */         \
-}
-/* clear the received and transmit byte status, write tx data to buffer, wait till transmit done */
-#define LCD_SPI_TX(x)                   { U1CSR &= ~(BV(2) | BV(1)); U1DBUF = x; while( !(U1CSR & BV(1)) ); }
-#define LCD_SPI_WAIT_RXRDY()            { while(!(U1CSR & BV(1))); }
+/***************************16*16µÄµãÕó×ÖÌåÈ¡Ä£·½Ê½£º¹²Òõ¡ª¡ªÁÐÐÐÊ½¡ª¡ªÄæÏòÊä³ö*********/
+unsigned char F16x16[] = 	  	 
+{  	
+/*--  ÎÄ×Ö:  ÎÂ  --*/
+/*--  ËÎÌå12;  ´Ë×ÖÌåÏÂ¶ÔÓ¦µÄµãÕóÎª£º¿íx¸ß=16x16   --*/
+0x10,0x21,0x86,0x70,0x00,0x7E,0x4A,0x4A,0x4A,0x4A,0x4A,0x7E,0x00,0x00,0x00,0x00,
+0x02,0xFE,0x01,0x40,0x7F,0x41,0x41,0x7F,0x41,0x41,0x7F,0x41,0x41,0x7F,0x40,0x00,
 
+/*--  ÎÄ×Ö:  ¶È  --*/
+/*--  ËÎÌå12;  ´Ë×ÖÌåÏÂ¶ÔÓ¦µÄµãÕóÎª£º¿íx¸ß=16x16   --*/
+0x00,0x00,0xFC,0x04,0x24,0x24,0xFC,0xA5,0xA6,0xA4,0xFC,0x24,0x24,0x24,0x04,0x00,
+0x80,0x60,0x1F,0x80,0x80,0x42,0x46,0x2A,0x12,0x12,0x2A,0x26,0x42,0xC0,0x40,0x00,
 
-/* Control macros */
-#define LCD_DO_WRITE()        HAL_IO_SET(HAL_LCD_MODE_PORT,  HAL_LCD_MODE_PIN,  1);
-#define LCD_DO_CONTROL()      HAL_IO_SET(HAL_LCD_MODE_PORT,  HAL_LCD_MODE_PIN,  0);
+/*--  ÎÄ×Ö:  £º  --*/
+/*--  ËÎÌå12;  ´Ë×ÖÌåÏÂ¶ÔÓ¦µÄµãÕóÎª£º¿íx¸ß=16x16   --*/
+0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+0x00,0x00,0x36,0x36,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 
-#define LCD_ACTIVATE_RESET()  HAL_IO_SET(HAL_LCD_RESET_PORT, HAL_LCD_RESET_PIN, 0);
-#define LCD_RELEASE_RESET()   HAL_IO_SET(HAL_LCD_RESET_PORT, HAL_LCD_RESET_PIN, 1);
+/*--  ÎÄ×Ö:  Êª  --*/
+/*--  ËÎÌå12;  ´Ë×ÖÌåÏÂ¶ÔÓ¦µÄµãÕóÎª£º¿íx¸ß=16x16   --*/
+0x10,0x60,0x02,0xCC,0x00,0x00,0x3E,0x2A,0xAA,0x2A,0xAA,0x2A,0x3E,0x00,0x00,0x00,
+0x08,0x08,0xFE,0x01,0x40,0x42,0x4C,0x40,0x7F,0x40,0x7F,0x48,0x44,0x42,0x40,0x00,
+
+};
+
 
 #if (HAL_LCD == TRUE)
-/**************************************************************************************************
- *                                       LOCAL VARIABLES
- **************************************************************************************************/
-
-static uint8 *Lcd_Line1;
-
-/**************************************************************************************************
- *                                       FUNCTIONS - API
- **************************************************************************************************/
-
 void HalLcd_HW_Init(void);
 void HalLcd_HW_WaitUs(uint16 i);
 void HalLcd_HW_Clear(void);
-void HalLcd_HW_ClearAllSpecChars(void);
 void HalLcd_HW_Control(uint8 cmd);
 void HalLcd_HW_Write(uint8 data);
 void HalLcd_HW_SetContrast(uint8 value);
 void HalLcd_HW_WriteChar(uint8 line, uint8 col, char text);
 void HalLcd_HW_WriteLine(uint8 line, const char *pText);
+
+void DelayMS(unsigned int msec);
+void LCD_DLY_ms(unsigned int ms);
+void LCD_WrDat(unsigned char dat);
+void LCD_WrCmd(unsigned char cmd);
+void LCD_Set_Pos(unsigned char x, unsigned char y);
+void LCD_Fill(unsigned char bmp_dat) ;
+void LCD_CLS(void);
+void LcdClearLine(unsigned char y, unsigned char count);
+
+void LCD_P8x16Str(unsigned char x, unsigned char y,unsigned char ch[]);
+void HalLcdDisplayPercentBar( char *title, uint8 value );
+void LCD_P16x16Ch(unsigned char x, unsigned char y, unsigned char N);
 #endif //LCD
+
 
 /**************************************************************************************************
  * @fn      HalLcdInit
@@ -230,99 +196,8 @@ void HalLcd_HW_WriteLine(uint8 line, const char *pText);
 void HalLcdInit(void)
 {
 #if (HAL_LCD == TRUE)
-  Lcd_Line1 = NULL;
   HalLcd_HW_Init();
 #endif
-}
-
-/*************************************************************************************************
- *                    LCD EMULATION FUNCTIONS
- *
- * Some evaluation boards are equipped with Liquid Crystal Displays
- * (LCD) which may be used to display diagnostic information. These
- * functions provide LCD emulation, sending the diagnostic strings
- * to Z-Tool via the RS232 serial port. These functions are enabled
- * when the "LCD_SUPPORTED" compiler flag is placed in the makefile.
- *
- * Most applications update both lines (1 and 2) of the LCD whenever
- * text is posted to the device. This emulator assumes that line 1 is
- * updated first (saved locally) and the formatting and send operation
- * is triggered by receipt of line 2. Nothing will be transmitted if
- * only line 1 is updated.
- *
- *************************************************************************************************/
-
-
-/**************************************************************************************************
- * @fn      HalLcdWriteString
- *
- * @brief   Write a string to the LCD
- *
- * @param   str    - pointer to the string that will be displayed
- *          option - display options
- *
- * @return  None
- **************************************************************************************************/
-void HalLcdWriteString ( char *str, uint8 option)
-{
-#if (HAL_LCD == TRUE)
-
-  uint8 strLen = 0;
-  uint8 totalLen = 0;
-  uint8 *buf;
-  uint8 tmpLen;
-
-  if ( Lcd_Line1 == NULL )
-  {
-    Lcd_Line1 = osal_mem_alloc( HAL_LCD_MAX_CHARS+1 );
-    HalLcdWriteString( "TexasInstruments", 1 );
-  }
-
-  strLen = (uint8)osal_strlen( (char*)str );
-
-  /* Check boundries */
-  if ( strLen > HAL_LCD_MAX_CHARS )
-    strLen = HAL_LCD_MAX_CHARS;
-
-  if ( option == HAL_LCD_LINE_1 )
-  {
-    /* Line 1 gets saved for later */
-    osal_memcpy( Lcd_Line1, str, strLen );
-    Lcd_Line1[strLen] = '\0';
-  }
-  else
-  {
-    /* Line 2 triggers action */
-    tmpLen = (uint8)osal_strlen( (char*)Lcd_Line1 );
-    totalLen =  tmpLen + 1 + strLen + 1;
-    buf = osal_mem_alloc( totalLen );
-    if ( buf != NULL )
-    {
-      /* Concatenate strings */
-      osal_memcpy( buf, Lcd_Line1, tmpLen );
-      buf[tmpLen++] = ' ';
-      osal_memcpy( &buf[tmpLen], str, strLen );
-      buf[tmpLen+strLen] = '\0';
-
-      /* Send it out */
-#if defined (ZTOOL_P1) || defined (ZTOOL_P2)
-
-#if defined(SERIAL_DEBUG_SUPPORTED)
-      debug_str( (uint8*)buf );
-#endif //LCD_SUPPORTED
-
-#endif //ZTOOL_P1
-
-      /* Free mem */
-      osal_mem_free( buf );
-    }
-  }
-
-  /* Display the string */
-  HalLcd_HW_WriteLine (option, str);
-
-#endif //HAL_LCD
-
 }
 
 /**************************************************************************************************
@@ -385,9 +260,9 @@ void HalLcdWriteStringValue( char *title, uint16 value, uint8 format, uint8 line
 
   tmpLen = (uint8)osal_strlen( (char*)title );
   osal_memcpy( buf, title, tmpLen );
-  buf[tmpLen] = ' ';
+  //buf[tmpLen] = ' ';
   err = (uint32)(value);
-  _ltoa( err, &buf[tmpLen+1], format );
+  _ltoa( err, &buf[tmpLen], format );
   HalLcdWriteString( (char*)buf, line );		
 #endif
 }
@@ -420,7 +295,7 @@ void HalLcdWriteStringValueValue( char *title, uint16 value1, uint8 format1,
   if ( tmpLen )
   {
     osal_memcpy( buf, title, tmpLen );
-    buf[tmpLen++] = ' ';
+    //buf[tmpLen++] = ' ';
   }
 
   err = (uint32)(value1);
@@ -437,327 +312,239 @@ void HalLcdWriteStringValueValue( char *title, uint16 value1, uint8 format1,
 #endif
 }
 
-/**************************************************************************************************
- * @fn      HalLcdDisplayPercentBar
- *
- * @brief   Display percentage bar on the LCD
- *
- * @param   title   -
- *          value   -
- *
- * @return  None
- **************************************************************************************************/
-void HalLcdDisplayPercentBar( char *title, uint8 value )
-{
 #if (HAL_LCD == TRUE)
-
-  uint8 percent;
-  uint8 leftOver;
-  uint8 buf[17];
-  uint32 err;
-  uint8 x;
-
-  /* Write the title: */
-  HalLcdWriteString( title, HAL_LCD_LINE_1 );
-
-  if ( value > 100 )
-    value = 100;
-
-  /* convert to blocks */
-  percent = (uint8)(value / 10);
-  leftOver = (uint8)(value % 10);
-
-  /* Make window */
-  osal_memcpy( buf, "[          ]  ", 15 );
-
-  for ( x = 0; x < percent; x ++ )
-  {
-    buf[1+x] = '>';
-  }
-
-  if ( leftOver >= 5 )
-    buf[1+x] = '+';
-
-  err = (uint32)value;
-  _ltoa( err, (uint8*)&buf[13], 10 );
-
-  HalLcdWriteString( (char*)buf, HAL_LCD_LINE_2 );
-
-#endif
-
+void DelayMS(unsigned int msec)
+{ 
+    unsigned int i,j;
+    
+    for (i=0; i<msec; i++)
+        for (j=0; j<530; j++);
 }
 
-#if (HAL_LCD == TRUE)
-/**************************************************************************************************
- *                                    HARDWARE LCD
- **************************************************************************************************/
-
-/**************************************************************************************************
- * @fn      halLcd_ConfigIO
- *
- * @brief   Configure IO lines needed for LCD control.
- *
- * @param   None
- *
- * @return  None
- **************************************************************************************************/
-static void halLcd_ConfigIO(void)
-{
-  /* GPIO configuration */
-  HAL_CONFIG_IO_OUTPUT(HAL_LCD_MODE_PORT,  HAL_LCD_MODE_PIN,  1);
-  HAL_CONFIG_IO_OUTPUT(HAL_LCD_RESET_PORT, HAL_LCD_RESET_PIN, 1);
-  HAL_CONFIG_IO_OUTPUT(HAL_LCD_CS_PORT,    HAL_LCD_CS_PIN,    1);
-}
-
-/**************************************************************************************************
- * @fn      halLcd_ConfigSPI
- *
- * @brief   Configure SPI lines needed for talking to LCD.
- *
- * @param   None
- *
- * @return  None
- **************************************************************************************************/
-static void halLcd_ConfigSPI(void)
-{
-  /* UART/SPI Peripheral configuration */
-
-   uint8 baud_exponent;
-   uint8 baud_mantissa;
-
-  /* Set SPI on UART 1 alternative 2 */
-  PERCFG |= 0x02;
-
-  /* Configure clk, master out and master in lines */
-  HAL_CONFIG_IO_PERIPHERAL(HAL_LCD_CLK_PORT,  HAL_LCD_CLK_PIN);
-  HAL_CONFIG_IO_PERIPHERAL(HAL_LCD_MOSI_PORT, HAL_LCD_MOSI_PIN);
-  HAL_CONFIG_IO_PERIPHERAL(HAL_LCD_MISO_PORT, HAL_LCD_MISO_PIN);
-
-
-  /* Set SPI speed to 1 MHz (the values assume system clk of 32MHz)
-   * Confirm on board that this results in 1MHz spi clk.
-   */
-  baud_exponent = 15;
-  baud_mantissa =  0;
-
-  /* Configure SPI */
-  U1UCR  = 0x80;      /* Flush and goto IDLE state. 8-N-1. */
-  U1CSR  = 0x00;      /* SPI mode, master. */
-  U1GCR  = HAL_SPI_TRANSFER_MSB_FIRST | HAL_SPI_CLOCK_PHA_0 | HAL_SPI_CLOCK_POL_LO | baud_exponent;
-  U1BAUD = baud_mantissa;
-}
-
-/**************************************************************************************************
- * @fn      HalLcd_HW_Init
- *
- * @brief   Initilize HW LCD Driver.
- *
- * @param   None
- *
- * @return  None
- **************************************************************************************************/
-void HalLcd_HW_Init(void)
-{
-  /* Initialize LCD IO lines */
-  halLcd_ConfigIO();
-
-  /* Initialize SPI */
-  halLcd_ConfigSPI();
-
-  /* Perform reset */
-  LCD_ACTIVATE_RESET();
-  HalLcd_HW_WaitUs(15000); // 15 ms
-  LCD_RELEASE_RESET();
-  HalLcd_HW_WaitUs(15); // 15 us
-
-  /* Perform the initialization sequence */
-  FUNCTION_SET(CGRAM | COM_FORWARD | THREE_LINE);
-
-  /* Set contrast */
-  HalLcd_HW_SetContrast(15);
-
-  /* Set power */
-  SET_POWER_SAVE_MODE(OSC_OFF | POWER_SAVE_ON);
-  SET_POWER_CTRL(VOLTAGE_DIVIDER_ON | CONVERTER_AND_REG_ON);
-  SET_BIAS_CTRL(BIAS_1_5);
-  HalLcd_HW_WaitUs(21000);// 21 ms
-
-  /* Clear the display */
-  HalLcd_HW_Clear();
-  HalLcd_HW_ClearAllSpecChars();
-  SET_DISPLAY_CTRL(DISPLAY_CTRL_ON | DISPLAY_CTRL_BLINK_OFF | DISPLAY_CTRL_CURSOR_OFF);
-}
-
-/**************************************************************************************************
- * @fn      HalLcd_HW_Control
- *
- * @brief   Write 1 command to the LCD
- *
- * @param   uint8 cmd - command to be written to the LCD
- *
- * @return  None
- **************************************************************************************************/
-void HalLcd_HW_Control(uint8 cmd)
-{
-  LCD_SPI_BEGIN();
-  LCD_DO_CONTROL();
-  LCD_SPI_TX(cmd);
-  LCD_SPI_WAIT_RXRDY();
-  LCD_SPI_END();
-}
-
-/**************************************************************************************************
- * @fn      HalLcd_HW_Write
- *
- * @brief   Write 1 byte to the LCD
- *
- * @param   uint8 data - data to be written to the LCD
- *
- * @return  None
- **************************************************************************************************/
-void HalLcd_HW_Write(uint8 data)
-{
-  LCD_SPI_BEGIN();
-  LCD_DO_WRITE();
-  LCD_SPI_TX(data);
-  LCD_SPI_WAIT_RXRDY();
-  LCD_SPI_END();
-}
-
-/**************************************************************************************************
- * @fn          HalLcd_HW_SetContrast
- *
- * @brief       Set display contrast
- *
- * @param       uint8 value - contrast value
- *
- * @return      none
- **************************************************************************************************/
-void HalLcd_HW_SetContrast(uint8 value)
-{
-  SET_ICONRAM_ADDR(CONTRAST_CTRL_REGISTER);
-  HalLcd_HW_Write(value);
-}
-
-/**************************************************************************************************
- * @fn      HalLcd_HW_Clear
- *
- * @brief   Clear the HW LCD
- *
- * @param   None
- *
- * @return  None
- **************************************************************************************************/
-void HalLcd_HW_Clear(void)
-{
-  uint8 n;
-
-  SET_DDRAM_ADDR(0x00);
-  for (n = 0; n < (LCD_MAX_LINE_COUNT * LCD_MAX_LINE_LENGTH); n++)
-  {
-    HalLcd_HW_Write(' ');
-  }
-}
-
-/**************************************************************************************************
- * @fn      HalLcd_HW_ClearAllSpecChars
- *
- * @brief   Clear all special chars
- *
- * @param   None
- *
- * @return  None
- **************************************************************************************************/
-void HalLcd_HW_ClearAllSpecChars(void)
-{
-  uint8 n = 0;
-
-  SET_GCRAM_CHAR(0);
-  for (n = 0; n < (8 * 8); n++)
-  {
-    HalLcd_HW_Write(0x00);
-  }
-}
-
-/**************************************************************************************************
- * @fn      HalLcd_HW_WriteChar
- *
- * @brief   Write one char to the display
- *
- * @param   uint8 line - line number that the char will be displayed
- *          uint8 col - colum where the char will be displayed
- *
- * @return  None
- **************************************************************************************************/
-void HalLcd_HW_WriteChar(uint8 line, uint8 col, char text)
-{
-  if (col < LCD_MAX_LINE_LENGTH)
-  {
-    SET_DDRAM_ADDR((line - 1) * LCD_MAX_LINE_LENGTH + col);
-    HalLcd_HW_Write(text);
-  }
-  else
-  {
+/*********************LCD ÑÓÊ±1ms************************************/
+void LCD_DLY_ms(unsigned int ms)
+{                         
+    unsigned int a;
+    while(ms)
+    {
+        a=1800;
+        while(a--);
+        ms--;
+    }
     return;
-  }
 }
 
-/**************************************************************************************************
- * @fn          halLcdWriteLine
- *
- * @brief       Write one line on display
- *
- * @param       uint8 line - display line
- *              char *pText - text buffer to write
- *
- * @return      none
- **************************************************************************************************/
-void HalLcd_HW_WriteLine(uint8 line, const char *pText)
+/*********************LCDÐ´Êý¾Ý************************************/ 
+void LCD_WrDat(unsigned char dat)     
 {
-  uint8 count;
-  uint8 totalLength = (uint8)osal_strlen( (char *)pText );
-
-  /* Write the content first */
-  for (count=0; count<totalLength; count++)
-  {
-    HalLcd_HW_WriteChar(line, count, (*(pText++)));
-  }
-
-  /* Write blank spaces to rest of the line */
-  for(count=totalLength; count<LCD_MAX_LINE_LENGTH;count++)
-  {
-    HalLcd_HW_WriteChar(line, count, ' ');
-  }
+    unsigned char i=8, temp=0;
+    LCD_DC=1;  
+    for(i=0;i<8;i++) //·¢ËÍÒ»¸ö°ËÎ»Êý¾Ý 
+    {
+        LCD_SCL=0;  
+        
+        temp = dat&0x80;
+        if (temp == 0)
+        {
+            LCD_SDA = 0;
+        }
+        else
+        {
+            LCD_SDA = 1;
+        }
+        LCD_SCL=1;             
+        dat<<=1;    
+    }
 }
 
-/**************************************************************************************************
- * @fn      HalLcd_HW_WaitUs
- *
- * @brief   wait for x us. @ 32MHz MCU clock it takes 32 "nop"s for 1 us delay.
- *
- * @param   x us. range[0-65536]
- *
- * @return  None
- **************************************************************************************************/
+/*********************LCDÐ´ÃüÁî************************************/                                        
+void LCD_WrCmd(unsigned char cmd)
+{
+    unsigned char i=8, temp=0;
+    LCD_DC=0;
+    for(i=0;i<8;i++) //·¢ËÍÒ»¸ö°ËÎ»Êý¾Ý 
+    { 
+        LCD_SCL=0; 
+       
+        temp = cmd&0x80;
+        if (temp == 0)
+        {
+            LCD_SDA = 0;
+        }
+        else
+        {
+            LCD_SDA = 1;
+        }
+        LCD_SCL=1;
+        cmd<<=1;;        
+    }     
+}
+
+/*********************LCD ÉèÖÃ×ø±ê************************************/
+void LCD_Set_Pos(unsigned char x, unsigned char y) 
+{ 
+    LCD_WrCmd(0xb0+y);
+    LCD_WrCmd(((x&0xf0)>>4)|0x10);
+    LCD_WrCmd((x&0x0f)|0x01); 
+} 
+
+/*********************LCDÈ«ÆÁ************************************/
+void LCD_Fill(unsigned char bmp_dat) 
+{
+    unsigned char y,x;
+    for(y=0;y<8;y++)
+    {
+        LCD_WrCmd(0xb0+y);
+        LCD_WrCmd(0x01);
+        LCD_WrCmd(0x10);
+        for(x=0;x<X_WIDTH;x++)
+            LCD_WrDat(bmp_dat);
+    }
+}
+
+/*********************LCD¸´Î»************************************/
+void LCD_CLS(void)
+{
+    unsigned char y,x;    
+    for(y=0;y<8;y++)
+    {
+        LCD_WrCmd(0xb0+y);
+        LCD_WrCmd(0x01);
+        LCD_WrCmd(0x10); 
+        for(x=0;x<X_WIDTH;x++)
+            LCD_WrDat(0);
+    }
+}
+
+void LcdClearLine(unsigned char y, unsigned char count)
+{
+    unsigned char x,j;	
+    
+    for(j=y; j<(y+count); j++)
+    {
+        LCD_WrCmd(0xb0+j);
+        LCD_WrCmd(0x01);
+        LCD_WrCmd(0x10); 
+        for(x=0;x<X_WIDTH;x++)
+           LCD_WrDat(0);
+    }
+}
+
+void HalLcdWriteString (char *str, uint8 option)
+{
+  uint8 x=0,y=0,strLen;
+  uint8 lcdBuf[HAL_LCD_MAX_CHARS+1];
+    
+  x=0;
+  y = (option-1)*2;
+  strLen = (uint8)osal_strlen( (char*)str );
+
+  /* Check boundries */
+  if ( strLen > HAL_LCD_MAX_CHARS )
+    strLen = HAL_LCD_MAX_CHARS;
+
+  osal_memset(lcdBuf, 0, HAL_LCD_MAX_CHARS+1);
+  osal_memcpy( lcdBuf, str, strLen );
+  
+  LcdClearLine(y, 2);
+  LCD_P8x16Str(x, y, lcdBuf);
+}
+
+/***ÄÜÃèÊö£ºÏÔÊ¾8*16Ò»×é±ê×¼ASCII×Ö·û´®     ÏÔÊ¾µÄ×ø±ê£¨x,y£©£¬yÎªÒ³·¶Î§0¡«7***/
+void LCD_P8x16Str(unsigned char x, unsigned char y,unsigned char ch[])
+{
+    unsigned char c=0,i=0,j=0;
+    
+    while (ch[j]!='\0')
+    {    
+        c =ch[j]-32;
+        if(x>120){
+          x=0;
+          y++;
+        }
+        LCD_Set_Pos(x,y);    
+        for(i=0;i<8;i++)     
+            LCD_WrDat(F8X16[c*16+i]);
+        LCD_Set_Pos(x,y+1);    
+        for(i=0;i<8;i++)     
+            LCD_WrDat(F8X16[c*16+i+8]);  
+        x+=8;
+        j++;
+    }
+}
+
+/*****************¹¦ÄÜÃèÊö£ºÏÔÊ¾16*16µãÕó  ÏÔÊ¾µÄ×ø±ê£¨x,y£©£¬yÎªÒ³·¶Î§0¡«7****************************/
+void LCD_P16x16Ch(unsigned char x, unsigned char y, unsigned char N)
+{
+    unsigned char wm=0;
+    unsigned int adder=2*N;//32*N;        
+    LCD_Set_Pos(x , y);
+    for(wm = 0;wm < 16;wm++)               
+    {
+        LCD_WrDat(F16x16[adder]);    
+        adder += 1;
+    }      
+    LCD_Set_Pos(x,y + 1); 
+    for(wm = 0;wm < 16;wm++)          
+    {
+        LCD_WrDat(F16x16[adder]);
+        adder += 1;
+    }           
+}
+
 void HalLcd_HW_WaitUs(uint16 microSecs)
 {
   while(microSecs--)
   {
     /* 32 NOPs == 1 usecs */
-    asm("nop"); asm("nop"); asm("nop"); asm("nop"); asm("nop");
-    asm("nop"); asm("nop"); asm("nop"); asm("nop"); asm("nop");
-    asm("nop"); asm("nop"); asm("nop"); asm("nop"); asm("nop");
-    asm("nop"); asm("nop"); asm("nop"); asm("nop"); asm("nop");
-    asm("nop"); asm("nop"); asm("nop"); asm("nop"); asm("nop");
-    asm("nop"); asm("nop"); asm("nop"); asm("nop"); asm("nop");
-    asm("nop"); asm("nop");
+    asm("nop"); asm("nop"); asm("nop"); asm("nop");
+    asm("nop"); asm("nop"); asm("nop"); asm("nop");
   }
 }
+
+void HalLcd_HW_Init(void)
+{
+    P0SEL &= 0xFE; //ÈÃP0.0ÎªÆÕÍ¨IO¿Ú£¬
+    P0DIR |= 0x01; //ÈÃP0.0ÎªÎªÊä³ö
+
+    P1SEL &= 0x73; //ÈÃ P1.2 P1.3 P1.7ÎªÆÕÍ¨IO¿Ú
+    P1DIR |= 0x8C; //°Ñ P1.2 P1.3 1.7ÉèÖÃÎªÊä³ö
+    
+    LCD_SCL=1;
+    LCD_RST=0;
+    LCD_DLY_ms(50);
+    LCD_RST=1;      //´ÓÉÏµçµ½ÏÂÃæ¿ªÊ¼³õÊ¼»¯ÒªÓÐ×ã¹»µÄÊ±¼ä£¬¼´µÈ´ýRC¸´Î»Íê±Ï   
+    LCD_WrCmd(0xae);//--turn off oled panel
+    LCD_WrCmd(0x00);//---set low column address
+    LCD_WrCmd(0x10);//---set high column address
+    LCD_WrCmd(0x40);//--set start line address  Set Mapping RAM Display Start Line (0x00~0x3F)
+    LCD_WrCmd(0x81);//--set contrast control register
+    LCD_WrCmd(0xcf); // Set SEG Output Current Brightness
+    LCD_WrCmd(0xa1);//--Set SEG/Column Mapping     0xa0×óÓÒ·´ÖÃ 0xa1Õý³£
+    LCD_WrCmd(0xc8);//Set COM/Row Scan Direction   0xc0ÉÏÏÂ·´ÖÃ 0xc8Õý³£
+    LCD_WrCmd(0xa6);//--set normal display
+    LCD_WrCmd(0xa8);//--set multiplex ratio(1 to 64)
+    LCD_WrCmd(0x3f);//--1/64 duty
+    LCD_WrCmd(0xd3);//-set display offset    Shift Mapping RAM Counter (0x00~0x3F)
+    LCD_WrCmd(0x00);//-not offset
+    LCD_WrCmd(0xd5);//--set display clock divide ratio/oscillator frequency
+    LCD_WrCmd(0x80);//--set divide ratio, Set Clock as 100 Frames/Sec
+    LCD_WrCmd(0xd9);//--set pre-charge period
+    LCD_WrCmd(0xf1);//Set Pre-Charge as 15 Clocks & Discharge as 1 Clock
+    LCD_WrCmd(0xda);//--set com pins hardware configuration
+    LCD_WrCmd(0x12);
+    LCD_WrCmd(0xdb);//--set vcomh
+    LCD_WrCmd(0x40);//Set VCOM Deselect Level
+    LCD_WrCmd(0x20);//-Set Page Addressing Mode (0x00/0x01/0x02)
+    LCD_WrCmd(0x02);//
+    LCD_WrCmd(0x8d);//--set Charge Pump enable/disable
+    LCD_WrCmd(0x14);//--set(0x10) disable
+    LCD_WrCmd(0xa4);// Disable Entire Display On (0xa4/0xa5)
+    LCD_WrCmd(0xa6);// Disable Inverse Display On (0xa6/a7) 
+    LCD_WrCmd(0xaf);//--turn on oled panel
+    LCD_Fill(0x00);  //³õÊ¼ÇåÆÁ 
+    LCD_Set_Pos(0,0); 
+}
+
+
 #endif
-
-
-/**************************************************************************************************
-**************************************************************************************************/
-
-
-

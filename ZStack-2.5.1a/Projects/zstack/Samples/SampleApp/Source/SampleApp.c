@@ -84,7 +84,7 @@
  * CONSTANTS
  */
 
-#define DATA_PIN P0_7      //定义P0.7口为传感器的输入端
+#define DATA_PIN P0_4      //定义P0.7口为传感器的输入端
 
 /*****************************************************************************
 *  函数名称  ： pinInit
@@ -95,8 +95,8 @@
 ******************************************************************************/
 void pinInit()
 {
-  P0SEL &= ~(1 << 7);
-  P0DIR &= ~(1 << 7);
+  P0SEL &= ~(1 << 4);
+  P0DIR &= ~(1 << 4);
 }
 
 /*********************************************************************
@@ -457,12 +457,13 @@ void SampleApp_MessageMSGCB( afIncomingMSGPacket_t *pkt )
     case SAMPLEAPP_P2P_CLUSTERID: //收到广播数据  
       if(pkt->cmd.Data[0] == 1+'0')
       {
-        HalUARTWrite(0,"有光",4);//输出接收到的
+        HalUARTWrite(0,"有人",4);//输出接收到的
       }
       else
       {
-        HalUARTWrite(0,"无光",4);//输出接收到的
+        HalUARTWrite(0,"无人",4);//输出接收到的
       }
+      
       HalUARTWrite(0,"\n",1);  //回车换行
       break;
 
@@ -493,20 +494,27 @@ void SampleApp_MessageMSGCB( afIncomingMSGPacket_t *pkt )
 void SampleApp_Send_P2P_Message( void )
 {
 
-  unsigned char data;
+  unsigned char data = 0+'0';
   if(DATA_PIN == 1)
+  { 
+        MicroWait(10000); //等待10ms
+        if(DATA_PIN == 1)
+        { 
+             data = 1+'0';
+        }
+  }
+  
+  if(data == 0+'0')
   {        
-       data = 0+'0';
        HalLedSet(HAL_LED_1,HAL_LED_MODE_OFF);
-       HalLcdWriteCH(0,3,5); //无光
-       HalLcdWriteCH(1,3,6);
+       HalLcdWriteCH(0,3,5); //无人
+       HalLcdWriteCH(1,3,7);
   }
   else
   {
-       data = 1+'0';
        HalLedSet(HAL_LED_1,HAL_LED_MODE_ON);
-       HalLcdWriteCH(0,3,4); //有光
-       HalLcdWriteCH(1,3,6);
+       HalLcdWriteCH(0,3,4); //有人
+       HalLcdWriteCH(1,3,7);
   }
   //调用AF_DataRequest将数据无线广播出去
   if( AF_DataRequest( &SampleApp_P2P_DstAddr,//发送目的地址＋端点地址和传送模式

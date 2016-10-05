@@ -70,7 +70,7 @@ extern "C"
 
 // Send Message Timeout
 #define SAMPLEAPP_SEND_PERIODIC_MSG_TIMEOUT   5000     // Every 5 seconds
-#define SAMPLEAPP_SEND_P2P_MSG_TIMEOUT   2000     // Every 5 seconds
+#define SAMPLEAPP_SEND_P2P_MSG_TIMEOUT   500     // Every 5 seconds
 // Application Events (OSAL) - These are bit weighted definitions.
 #define SAMPLEAPP_SEND_PERIODIC_MSG_EVT       0x0001
 #define SAMPLEAPP_SEND_P2P_MSG_EVT       0x0002 

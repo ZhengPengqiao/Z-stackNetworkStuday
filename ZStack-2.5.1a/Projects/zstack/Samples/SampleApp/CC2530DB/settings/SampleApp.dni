@@ -1,5 +1,5 @@
 [DebugChecksum]
-Checksum=-96972195
+Checksum=-1727105618
 [DisAssemblyWindow]
 NumStates=_ 1
 State 1=_ 1
@@ -17,11 +17,6 @@ UseTrigger=1
 TriggerName=main
 LimitSize=0
 ByteLimit=50
-[Breakpoints]
-Count=0
-[ChipconEmu]
-Stop timers on halt=0
-Leave target running=1
 [Log file]
 LoggingEnabled=_ 0
 LogFile=_ ""
@@ -29,6 +24,11 @@ Category=_ 0
 [TermIOLog]
 LoggingEnabled=_ 0
 LogFile=_ ""
+[Breakpoints]
+Count=0
+[ChipconEmu]
+Stop timers on halt=0
+Leave target running=1
 [Aliases]
 A0=_ "D:\Documents\CC2530Projects\组网实验\6.温度传感器DS18B20 - 副本\ZStack-2.5.1a\Components\mt\MT_UART.c" ""
 A1=_ "D:\Documents\CC2530Projects\组网实验\6.温度传感器DS18B20 - 副本\ZStack-2.5.1a\Projects\zstack\ZMain\TI2530DB\ZMain.c" ""

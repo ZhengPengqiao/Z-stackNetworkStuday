@@ -192,7 +192,12 @@ void SampleApp_Init( uint8 task_id )
   // Device hardware initialization can be added here or in main() (Zmain.c).
   // If the hardware is application specific - add it here.
   // If the hardware is other parts of the device add it in main().
-
+//------------------------------ 配置串口 --------------------------------------
+  MT_UartInit();   //初始化串口
+  MT_UartRegisterTaskID(task_id); //注册串口任务
+  HalUARTWrite(0,"UartInit OK\n",sizeof("UartInit OK\n")); //向串口发送数据
+  //------------------------------------------------------------------------------
+  
  #if defined ( BUILD_ALL_DEVICES )
   // The "Demo" target is setup to have BUILD_ALL_DEVICES and HOLD_AUTO_START
   // We are looking at a jumper (defined in SampleAppHw.c) to be jumpered
@@ -243,7 +248,7 @@ void SampleApp_Init( uint8 task_id )
   SampleApp_Group.ID = 0x0001;//组号
   osal_memcpy( SampleApp_Group.name, "Group 1", 7  );//设定组名
   aps_AddGroup( SAMPLEAPP_ENDPOINT, &SampleApp_Group );//把该组登记添加到APS中
-
+ 
 #if defined ( LCD_SUPPORTED )
   HalLcdWriteString( "SampleApp", HAL_LCD_LINE_1 ); //如果支持LCD，显示提示信息
 #endif

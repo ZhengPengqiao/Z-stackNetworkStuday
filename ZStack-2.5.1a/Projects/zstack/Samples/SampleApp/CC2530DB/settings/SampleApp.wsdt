@@ -12,7 +12,7 @@
           
           
           
-        <Column0>245</Column0><Column1>27</Column1><Column2>27</Column2><Column3>27</Column3></ColumnWidths>
+        <Column0>228</Column0><Column1>27</Column1><Column2>27</Column2><Column3>27</Column3></ColumnWidths>
       </Workspace>
       <Build>
         
@@ -37,7 +37,7 @@
             <Factory>Workspace</Factory>
             <Session>
               
-            <NodeDict><ExpandedNode>SampleApp</ExpandedNode><ExpandedNode>SampleApp/App</ExpandedNode></NodeDict></Session>
+            <NodeDict><ExpandedNode>SampleApp</ExpandedNode><ExpandedNode>SampleApp/HAL</ExpandedNode><ExpandedNode>SampleApp/HAL/Common</ExpandedNode><ExpandedNode>SampleApp/HAL/Include</ExpandedNode><ExpandedNode>SampleApp/HAL/Target</ExpandedNode><ExpandedNode>SampleApp/HAL/Target/CC2530EB</ExpandedNode></NodeDict></Session>
           </Tab>
         </Tabs>
         
@@ -63,14 +63,14 @@
       
       
       
-    <Pane><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\Source\SampleApp.c</Filename><XPos>0</XPos><YPos>455</YPos><SelStart>16607</SelStart><SelEnd>17902</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\ZMain\TI2530DB\ZMain.c</Filename><XPos>0</XPos><YPos>88</YPos><SelStart>4624</SelStart><SelEnd>4624</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\Components\hal\target\CC2530EB\hal_lcd.c</Filename><XPos>0</XPos><YPos>141</YPos><SelStart>410</SelStart><SelEnd>410</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\Components\hal\include\hal_lcd.h</Filename><XPos>0</XPos><YPos>85</YPos><SelStart>4853</SelStart><SelEnd>4853</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\EndDeviceEB\List\nwk_globals.s51</Filename><XPos>0</XPos><YPos>188</YPos><SelStart>12704</SelStart><SelEnd>12704</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\Components\stack\nwk\nwk_globals.c</Filename><XPos>0</XPos><YPos>475</YPos><SelStart>16109</SelStart><SelEnd>16109</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\..\readme.txt</Filename><XPos>0</XPos><YPos>12</YPos><SelStart>340</SelStart><SelEnd>340</SelEnd></Tab><ActiveTab>6</ActiveTab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\Source\DS18B20.c</Filename><XPos>0</XPos><YPos>150</YPos><SelStart>2230</SelStart><SelEnd>2230</SelEnd></Tab></Pane><ActivePane>0</ActivePane><Sizes><Pane><X>1000000</X><Y>1000000</Y></Pane></Sizes><SplitMode>1</SplitMode></Editor>
+    <Pane><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\Source\SampleApp.c</Filename><XPos>0</XPos><YPos>446</YPos><SelStart>16506</SelStart><SelEnd>16506</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\ZMain\TI2530DB\ZMain.c</Filename><XPos>0</XPos><YPos>75</YPos><SelStart>3326</SelStart><SelEnd>3326</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\Source\SampleApp.h</Filename><XPos>0</XPos><YPos>58</YPos><SelStart>3047</SelStart><SelEnd>3047</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\..\..\6.&#x6e29;&#x5eA6;&#x4F20;&#x611F;&#x5668;DS18B20\ZStack-2.5.1a\Components\osal\common\OSAL.c</Filename><XPos>0</XPos><YPos>1037</YPos><SelStart>27071</SelStart><SelEnd>27071</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\..\..\6.&#x6e29;&#x5eA6;&#x4F20;&#x611F;&#x5668;DS18B20\ZStack-2.5.1a\Components\hal\target\CC2530EB\hal_uart.c</Filename><XPos>0</XPos><YPos>176</YPos><SelStart>6083</SelStart><SelEnd>6083</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\Components\hal\target\CC2530EB\hal_lcd.c</Filename><XPos>0</XPos><YPos>454</YPos><SelStart>18427</SelStart><SelEnd>18439</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\Components\hal\target\CC2530EB\hal_board_cfg.h</Filename><XPos>0</XPos><YPos>75</YPos><SelStart>4146</SelStart><SelEnd>4147</SelEnd></Tab><ActiveTab>6</ActiveTab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\Components\hal\include\hal_lcd.h</Filename><XPos>0</XPos><YPos>111</YPos><SelStart>5449</SelStart><SelEnd>5461</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\Components\hal\target\CC2530EB\hal_led.c</Filename><XPos>0</XPos><YPos>30</YPos><SelStart>2700</SelStart><SelEnd>2700</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\Components\hal\include\hal_led.h</Filename><XPos>0</XPos><YPos>39</YPos><SelStart>2515</SelStart><SelEnd>2515</SelEnd></Tab><Tab><Factory>TextEditor</Factory><Filename>$WS_DIR$\..\..\..\..\..\Components\hal\include\hal_board.h</Filename><XPos>0</XPos><YPos>0</YPos><SelStart>16</SelStart><SelEnd>16</SelEnd></Tab></Pane><ActivePane>0</ActivePane><Sizes><Pane><X>1000000</X><Y>1000000</Y></Pane></Sizes><SplitMode>1</SplitMode></Editor>
     <Positions>
       
       
       
       
       
-    <Top><Row0><Sizes><Toolbar-028de040><key>iaridepm.enu1</key></Toolbar-028de040></Sizes></Row0></Top><Left><Row0><Sizes><Wnd2><Rect><Top>-2</Top><Left>-2</Left><Bottom>515</Bottom><Right>319</Right><x>-2</x><y>-2</y><xscreen>297</xscreen><yscreen>186</yscreen><sizeHorzCX>228111</sizeHorzCX><sizeHorzCY>256198</sizeHorzCY><sizeVertCX>246544</sizeVertCX><sizeVertCY>712121</sizeVertCY></Rect></Wnd2></Sizes></Row0></Left><Right><Row0><Sizes/></Row0></Right><Bottom><Row0><Sizes><Wnd3><Rect><Top>-2</Top><Left>-2</Left><Bottom>166</Bottom><Right>1304</Right><x>-2</x><y>-2</y><xscreen>1306</xscreen><yscreen>168</yscreen><sizeHorzCX>1003072</sizeHorzCX><sizeHorzCY>231405</sizeHorzCY><sizeVertCX>228111</sizeVertCX><sizeVertCY>256198</sizeVertCY></Rect></Wnd3></Sizes></Row0></Bottom><Float><Sizes/></Float></Positions>
+    <Top><Row0><Sizes><Toolbar-02a8e2c0><key>iaridepm.enu1</key></Toolbar-02a8e2c0></Sizes></Row0></Top><Left><Row0><Sizes><Wnd2><Rect><Top>-2</Top><Left>-2</Left><Bottom>515</Bottom><Right>319</Right><x>-2</x><y>-2</y><xscreen>297</xscreen><yscreen>186</yscreen><sizeHorzCX>228111</sizeHorzCX><sizeHorzCY>256198</sizeHorzCY><sizeVertCX>246544</sizeVertCX><sizeVertCY>712121</sizeVertCY></Rect></Wnd2></Sizes></Row0></Left><Right><Row0><Sizes/></Row0></Right><Bottom><Row0><Sizes><Wnd3><Rect><Top>-2</Top><Left>-2</Left><Bottom>166</Bottom><Right>1304</Right><x>-2</x><y>-2</y><xscreen>1306</xscreen><yscreen>168</yscreen><sizeHorzCX>1003072</sizeHorzCX><sizeHorzCY>231405</sizeHorzCY><sizeVertCX>228111</sizeVertCX><sizeVertCY>256198</sizeVertCY></Rect></Wnd3></Sizes></Row0></Bottom><Float><Sizes/></Float></Positions>
   </Desktop>
 </Workspace>
 

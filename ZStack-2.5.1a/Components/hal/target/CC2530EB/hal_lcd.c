@@ -474,7 +474,7 @@ void LCD_P8x16Str(unsigned char x, unsigned char y,unsigned char ch[])
 void LCD_P16x16Ch(unsigned char x, unsigned char y, unsigned char N)
 {
     unsigned char wm=0;
-    unsigned int adder=2*N;//32*N;        
+    unsigned int adder=32*N;//32*N;        
     LCD_Set_Pos(x , y);
     for(wm = 0;wm < 16;wm++)               
     {

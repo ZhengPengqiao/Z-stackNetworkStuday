@@ -3750,6 +3750,9 @@
       <name>$PROJ_DIR$\..\..\..\ZMain\TI2530DB\ZMain.c</name>
     </file>
   </group>
+  <file>
+    <name>$PROJ_DIR$\..\..\..\..\..\..\readme.txt</name>
+  </file>
 </project>
 
 

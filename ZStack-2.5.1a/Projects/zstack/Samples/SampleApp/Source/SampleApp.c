@@ -419,25 +419,13 @@ void SampleApp_HandleKeys( uint8 shift, uint8 keys ) //´ËÊµÑéÃ»ÓĞÓÃµ½£¬ºóÃæÔÙ·ÖÎ
 void SampleApp_MessageMSGCB( afIncomingMSGPacket_t *pkt )
 {
   uint16 flashTime;
-  byte buf[3]; 
 
   switch ( pkt->clusterId ) //ÅĞ¶Ï´ØID
   {
     case SAMPLEAPP_PERIODIC_CLUSTERID: //ÊÕµ½¹ã²¥Êı¾İ
-      osal_memset(buf, 0 , 3);
-      osal_memcpy(buf, pkt->cmd.Data, 2); //¸´ÖÆÊı¾İµ½»º³åÇøÖĞ
-      
-      if(buf[0]=='D' && buf[1]=='1')      //ÅĞ¶ÏÊÕµ½µÄÊı¾İÊÇ·ñÎª"D1"         
-      {
-          HalLedBlink(HAL_LED_1, 0, 50, 500);//Èç¹ûÊÇÔòLed1¼ä¸ô500msÉÁË¸
-#if defined(ZDO_COORDINATOR) //Ğ­µ÷Æ÷ÊÕµ½"D1"ºó,·µ»Ø"D1"¸øÖÕ¶Ë£¬ÈÃÖÕ¶ËLed1Ò²ÉÁË¸
-          SampleApp_SendPeriodicMessage();
-#endif
-      }
-      else
-      {
-          HalLedSet(HAL_LED_1, HAL_LED_MODE_ON);                   
-      }
+      HalUARTWrite(0,"RX:",3); //ÌáÊ¾ĞÅÏ¢
+      HalUARTWrite(0,pkt->cmd.Data,pkt->cmd.DataLength);//Êä³ö½ÓÊÕµ½µÄ
+      HalUARTWrite(0,"\n",1);  //»Ø³µ»»ĞĞ
       break;
 
     case SAMPLEAPP_FLASH_CLUSTERID: //ÊÕµ½×é²¥Êı¾İ
@@ -459,13 +447,13 @@ void SampleApp_MessageMSGCB( afIncomingMSGPacket_t *pkt )
 //·ÖÎö·¢ËÍÖÜÆÚĞÅÏ¢
 void SampleApp_SendPeriodicMessage( void )
 {
-  byte SendData[3]="D1";
+  byte SendData[11]="1234567890";
 
   // µ÷ÓÃAF_DataRequest½«Êı¾İÎŞÏß¹ã²¥³öÈ¥
   if( AF_DataRequest( &SampleApp_Periodic_DstAddr,//·¢ËÍÄ¿µÄµØÖ·£«¶ËµãµØÖ·ºÍ´«ËÍÄ£Ê½
                        &SampleApp_epDesc,//Ô´(´ğ¸´»òÈ·ÈÏ)ÖÕ¶ËµÄÃèÊö£¨±ÈÈç²Ù×÷ÏµÍ³ÖĞÈÎÎñIDµÈ£©Ô´EP
                        SAMPLEAPP_PERIODIC_CLUSTERID, //±»ProfileÖ¸¶¨µÄÓĞĞ§µÄ¼¯ÈººÅ
-                       2,       // ·¢ËÍÊı¾İ³¤¶È
+                       10,       // ·¢ËÍÊı¾İ³¤¶È
                        SendData,// ·¢ËÍÊı¾İ»º³åÇø
                        &SampleApp_TransID,     // ÈÎÎñIDºÅ
                        AF_DISCV_ROUTE,      // ÓĞĞ§Î»ÑÚÂëµÄ·¢ËÍÑ¡Ïî

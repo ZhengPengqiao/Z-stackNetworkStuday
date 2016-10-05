@@ -1,5 +1,3 @@
-½«³ÌĞòÏÂÔØºÃºó£¨Ğ­µ÷Æ÷£¬Â·ÓÉÆ÷£¬ÖÕ¶Ëºó¿ÉÒÔ£©£¬Á¬½Ó´®¿Ú½«»áÊÕµ½Êı¾İ¡°UartInit OK¡±
-×Ö·û´®¡£
 
 ÔÚ×ó±ßworkspaceÄ¿Â¼ÏÂ±È½ÏÖØÒªµÄÁ½¸öÎÄ¼ş¼Ğ·Ö±ğÊÇZmainºÍApp¡£ÎÒÃÇ¿ª·¢Ö÷ÒªÔÚAppÎÄ¼ş
 ¼Ğ½øĞĞ£¬ÕâÒ²ÊÇÓÃ»§×Ô¼ºÌí¼Ó×Ô¼º´úÂëµÄµØ·½¡£Ö÷ÒªĞŞ¸ÄSampleApp.cºÍSampleApp.h¼´¿É£¬
@@ -31,3 +29,45 @@ MT_UART.hÎÄ¼şÖĞĞŞ¸ÄMT_UART_DEFAULT_BAUDRATE¡¢MT_UART_DEFAULT_OVERFLOWÀ´ĞŞ¸Ä²¨ÌØÂ
   
     //¶ÁÈ¡´®¿ÚÊı¾İ
     HalUARTRead(0,ch,4);
+    
+    
+
+/*****************************************************************************
+* ÊµÑéÖĞĞ­µ÷Æ÷Ö»½ÓÊÕÊı¾İËùÒÔÈ¡Ïû·¢ËÍÊÂ¼ş£¬ZDO_STATE_CHANGEÔÚÕâÀïÉèÖÃ
+******************************************************************************/
+
+case ZDO_STATE_CHANGE:
+//Ö»ÒªÍøÂç×´Ì¬·¢Éú¸Ä±ä£¬¾ÍÍ¨¹ıZDO_STATE_CHANGEÊÂ¼şÍ¨ÖªËùÓĞµÄÈÎÎñ¡£
+//Í¬Ê±Íê³É¶ÔĞ­µ÷Æ÷£¬Â·ÓÉÆ÷£¬ÖÕ¶ËµÄÉèÖÃ
+SampleApp_NwkState = (devStates_t)(MSGpkt->hdr.status);
+//if ( (SampleApp_NwkState == DEV_ZB_COORD)//ÊµÑéÖĞĞ­µ÷Æ÷Ö»½ÓÊÕÊı¾İËùÒÔÈ¡Ïû·¢ËÍÊÂ¼ş
+if ( (SampleApp_NwkState == DEV_ROUTER) || (SampleApp_NwkState == DEV_END_DEVICE) )
+{
+  // Start sending the periodic message in a regular interval.
+  //Õâ¸ö¶¨Ê±Æ÷Ö»ÊÇÎª·¢ËÍÖÜÆÚĞÅÏ¢¿ªÆôµÄ£¬Éè±¸Æô¶¯³õÊ¼»¯ºó´ÓÕâÀï¿ªÊ¼
+  //´¥·¢µÚÒ»¸öÖÜÆÚĞÅÏ¢µÄ·¢ËÍ£¬È»ºóÖÜ¶ø¸´Ê¼ÏÂÈ¥
+  osal_start_timerEx( SampleApp_TaskID,
+                    SAMPLEAPP_SEND_PERIODIC_MSG_EVT,
+                    SAMPLEAPP_SEND_PERIODIC_MSG_TIMEOUT );
+}
+else
+{
+  // Device is no longer in the network
+}
+break;
+
+
+
+/*****************************************************************************
+*  º¯ÊıÃû³Æ  £º osal_start_timerEx
+*  º¯Êı½éÉÜ  £º Õâ¸öº¯ÊıÌá¹©¶¨Ê±ÊÂ¼ş£¬µ±Ê±¼äµ½ÁËÊ±£¬½«»áµ÷ÓÃÏàÓ¦µÄÊÂ¼ş¡£
+*            £º
+*    ²ÎÊı    £º taskID £ºÄÄÒ»¸öÈÎÎñµÄ¶¨Ê±Æ÷
+*            £º event_id £º¶¨Ê±Æ÷½«»á²úÉúµÄÊÂ¼ş
+*            £º timeout_value £º¶¨Ê±Æ÷µÄºÁÃëÊı
+*   ·µ»ØÖµ   £º SUCCESS, »òÕß NO_TIMER_AVAIL.
+******************************************************************************/
+uint8 osal_start_timerEx( uint8 taskID, uint16 event_id, uint16 timeout_value );
+
+
+ÖÕ¶Ë¶¨Ê±ÏòĞ­µ÷Æ÷·¢ËÍĞÅÏ¢£¬Ğ­µ÷Æ÷½«½ÓÊÕµ½µÄÊı¾İ·¢ËÍµ½´®¿Ú

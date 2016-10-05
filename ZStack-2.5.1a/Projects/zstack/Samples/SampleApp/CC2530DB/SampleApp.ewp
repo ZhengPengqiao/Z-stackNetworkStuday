@@ -3180,12 +3180,6 @@
   <group>
     <name>App</name>
     <file>
-      <name>$PROJ_DIR$\..\Source\DHT11.C</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\..\Source\DHT11.H</name>
-    </file>
-    <file>
       <name>$PROJ_DIR$\..\Source\OSAL_SampleApp.c</name>
     </file>
     <file>

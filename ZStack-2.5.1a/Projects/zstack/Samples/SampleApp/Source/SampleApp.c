@@ -75,7 +75,6 @@
 #include "MT_APP.h"
 #include "MT.h"
 
-#include "DHT11.h"
 
 /*********************************************************************
  * MACROS
@@ -84,6 +83,21 @@
 /*********************************************************************
  * CONSTANTS
  */
+
+#define DATA_PIN P0_7      //定义P0.7口为传感器的输入端
+
+/*****************************************************************************
+*  函数名称  ： pinInit
+*  函数介绍  ： 初始化传感器引脚
+*            ：
+*    参数    ： 无
+*   返回值   ： 无
+******************************************************************************/
+void pinInit()
+{
+  P0SEL &= ~(1 << 7);
+  P0DIR &= ~(1 << 7);
+}
 
 /*********************************************************************
  * TYPEDEFS
@@ -202,7 +216,7 @@ void SampleApp_Init( uint8 task_id )
   HalUARTWrite(0,"UartInit OK\n",sizeof("UartInit OK\n")); //向串口发送数据
 //------------------------------------------------------------------------------
 //------------------------------ 配置DS18B20 --------------------------------------
-  P0SEL &= 0x7F;            //DS18B20的io初始化P0_7
+  pinInit();            //传感器引脚初始化
 //------------------------------------------------------------------------------
 
   
@@ -441,7 +455,14 @@ void SampleApp_MessageMSGCB( afIncomingMSGPacket_t *pkt )
   switch ( pkt->clusterId ) //判断簇ID
   {
     case SAMPLEAPP_P2P_CLUSTERID: //收到广播数据  
-      HalUARTWrite(0,pkt->cmd.Data,pkt->cmd.DataLength);//输出接收到的
+      if(pkt->cmd.Data[0] == 1+'0')
+      {
+        HalUARTWrite(0,"有光",4);//输出接收到的
+      }
+      else
+      {
+        HalUARTWrite(0,"无光",4);//输出接收到的
+      }
       HalUARTWrite(0,"\n",1);  //回车换行
       break;
 
@@ -472,42 +493,27 @@ void SampleApp_MessageMSGCB( afIncomingMSGPacket_t *pkt )
 void SampleApp_Send_P2P_Message( void )
 {
 
-    uint8 strData[20];
-    uint8 temp[3]; 
-    uint8 humidity[3];   
-
-    
-    DHT11();             //获取温湿度
-
-    //将温湿度的转换成字符串
-    temp[0]=wendu_shi+0x30;
-    temp[1]=wendu_ge+0x30;
-    humidity[0]=shidu_shi+0x30;
-    humidity[1]=shidu_ge+0x30;
-    
-    osal_memcpy(strData,"TEMP:",5);
-    osal_memcpy(&strData[5],temp,2);
-    osal_memcpy(&strData[7],"   ",3);
-    osal_memcpy(&strData[10],"Hum:",4);
-    osal_memcpy(&strData[14],humidity,2);
-    strData[16] = (uint8)'\n';
-    HalUARTWrite(0,strData, 16);
-    HalUARTWrite(0,"\n", 1);
-
-    HalLcdWriteString((char*)strData,HAL_LCD_LINE_3);  //LCD显示
-    LCD_P16x16Ch(16,6,0);
-    LCD_P16x16Ch(32,6,1);
-    LCD_P16x16Ch(48,6,2);
-    LCD_P16x16Ch(64,6,3);
-    LCD_P16x16Ch(80,6,1);
-    LCD_P16x16Ch(96,6,2);
-    
+  unsigned char data;
+  if(DATA_PIN == 1)
+  {        
+       data = 0+'0';
+       HalLedSet(HAL_LED_1,HAL_LED_MODE_OFF);
+       HalLcdWriteCH(0,3,5); //无光
+       HalLcdWriteCH(1,3,6);
+  }
+  else
+  {
+       data = 1+'0';
+       HalLedSet(HAL_LED_1,HAL_LED_MODE_ON);
+       HalLcdWriteCH(0,3,4); //有光
+       HalLcdWriteCH(1,3,6);
+  }
   //调用AF_DataRequest将数据无线广播出去
   if( AF_DataRequest( &SampleApp_P2P_DstAddr,//发送目的地址＋端点地址和传送模式
                        &SampleApp_epDesc,//源(答复或确认)终端的描述（比如操作系统中任务ID等）源EP
                        SAMPLEAPP_P2P_CLUSTERID, //被Profile指定的有效的集群号
-                       16,       // 发送数据长度
-                       strData,// 发送数据缓冲区
+                       1,       // 发送数据长度
+                       &data,// 发送数据缓冲区
                        &SampleApp_TransID,     // 任务ID号
                        AF_DISCV_ROUTE,      // 有效位掩码的发送选项
                        AF_DEFAULT_RADIUS ) == afStatus_SUCCESS )  //传送跳数，通常设置为AF_DEFAULT_RADIUS

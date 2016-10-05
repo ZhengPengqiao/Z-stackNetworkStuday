@@ -126,8 +126,11 @@ extern void HalLcdWriteStringValueValue( char *title, uint16 value1, uint8 forma
  */
 extern void HalLcdDisplayPercentBar( char *title, uint8 value );
 
-extern void LCD_P8x16Str(unsigned char x, unsigned char y,unsigned char ch[]);
-extern void LCD_P16x16Ch(unsigned char x, unsigned char y, unsigned char N);
+
+/*
+ * write a chinese
+ */
+extern void HalLcdWriteCH(unsigned char x, unsigned char y, unsigned char N);
 /**************************************************************************************************
 **************************************************************************************************/
 

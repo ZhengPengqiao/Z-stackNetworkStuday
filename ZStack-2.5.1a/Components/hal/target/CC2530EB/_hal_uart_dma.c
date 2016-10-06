@@ -1,7 +1,7 @@
 /**************************************************************************************************
   Filename:       _hal_uart_dma.c
-  Revised:        $Date: 2010-01-14 18:01:17 -0800 (Thu, 14 Jan 2010) $
-  Revision:       $Revision: 21503 $
+  Revised:        $Date: 2010-04-01 18:14:33 -0700 (Thu, 01 Apr 2010) $
+  Revision:       $Revision: 22068 $
 
   Description: This file contains the interface to the H/W UART driver by DMA.
 
@@ -99,7 +99,9 @@
 
 #define P2DIR_PRIPO                0xC0
 
-// Incompatible redefinitions between the 2 UART driver sub-modules:
+// Incompatible redefinitions result with more than one UART driver sub-module.
+#undef PxOUT
+#undef PxDIR
 #undef PxSEL
 #undef UxCSR
 #undef UxUCR
@@ -107,10 +109,16 @@
 #undef UxBAUD
 #undef UxGCR
 #undef URXxIE
+#undef URXxIF
 #undef UTXxIE
 #undef UTXxIF
+#undef HAL_UART_PERCFG_BIT
+#undef HAL_UART_Px_RTS
+#undef HAL_UART_Px_CTS
+#undef HAL_UART_Px_RX_TX
 #if (HAL_UART_DMA == 1)
 #define PxOUT                      P0
+#define PxIN                       P0
 #define PxDIR                      P0DIR
 #define PxSEL                      P0SEL
 #define UxCSR                      U0CSR
@@ -119,10 +127,12 @@
 #define UxBAUD                     U0BAUD
 #define UxGCR                      U0GCR
 #define URXxIE                     URX0IE
+#define URXxIF                     URX0IF
 #define UTXxIE                     UTX0IE
 #define UTXxIF                     UTX0IF
 #else
 #define PxOUT                      P1
+#define PxIN                       P1
 #define PxDIR                      P1DIR
 #define PxSEL                      P1SEL
 #define UxCSR                      U1CSR
@@ -131,6 +141,7 @@
 #define UxBAUD                     U1BAUD
 #define UxGCR                      U1GCR
 #define URXxIE                     URX1IE
+#define URXxIF                     URX1IF
 #define UTXxIE                     UTX1IE
 #define UTXxIF                     UTX1IF
 #endif
@@ -157,7 +168,7 @@
 #define HAL_UART_DMA_IDLE         (MT_UART_DEFAULT_IDLE_TIMEOUT * HAL_UART_MSECS_TO_TICKS)
 #else
 #if !defined HAL_UART_DMA_RX_MAX
-#define HAL_UART_DMA_RX_MAX        128
+#define HAL_UART_DMA_RX_MAX        256
 #endif
 #if !defined HAL_UART_DMA_TX_MAX
 #define HAL_UART_DMA_TX_MAX        HAL_UART_DMA_RX_MAX
@@ -166,7 +177,7 @@
 #define HAL_UART_DMA_HIGH         (HAL_UART_DMA_RX_MAX / 2 - 16)
 #endif
 #if !defined HAL_UART_DMA_IDLE
-#define HAL_UART_DMA_IDLE         (6 * HAL_UART_MSECS_TO_TICKS)
+#define HAL_UART_DMA_IDLE         (1 * HAL_UART_MSECS_TO_TICKS)
 #endif
 #endif
 #if !defined HAL_UART_DMA_FULL
@@ -197,25 +208,28 @@
  * TYPEDEFS
  */
 
+#if HAL_UART_DMA_RX_MAX <= 256
+typedef uint8 rxIdx_t;
+#else
+typedef uint16 rxIdx_t;
+#endif
+
+#if HAL_UART_DMA_TX_MAX <= 256
+typedef uint8 txIdx_t;
+#else
+typedef uint16 txIdx_t;
+#endif
+
 typedef struct
 {
   uint16 rxBuf[HAL_UART_DMA_RX_MAX];
-#if HAL_UART_DMA_RX_MAX < 256
-  uint8 rxHead;
-  uint8 rxTail;
-#else
-  uint16 rxHead;
-  uint16 rxTail;
-#endif
+  rxIdx_t rxHead;
+  rxIdx_t rxTail;
   uint8 rxTick;
   uint8 rxShdw;
 
   uint8 txBuf[2][HAL_UART_DMA_TX_MAX];
-#if HAL_UART_DMA_TX_MAX < 256
-  uint8 txIdx[2];
-#else
-  uint16 txIdx[2];
-#endif
+  txIdx_t txIdx[2];
   volatile uint8 txSel;
   uint8 txMT;
   uint8 txTick;           // 1-character time in 32kHz ticks according to baud rate,
@@ -250,7 +264,7 @@ static uartDMACfg_t dmaCfg;
  * LOCAL FUNCTIONS
  */
 
-static uint16 findTail(void);
+static rxIdx_t findTail(void);
 
 // Invoked by functions in hal_uart.c when this file is included.
 static void HalUARTInitDMA(void);
@@ -271,9 +285,9 @@ static void HalUARTResumeDMA(void);
  *
  * @return  Index of tail of rxBuf.
  *****************************************************************************/
-static uint16 findTail(void)
+static rxIdx_t findTail(void)
 {
-  uint16 idx = dmaCfg.rxHead;
+  rxIdx_t idx = dmaCfg.rxHead;
 
   do
   {
@@ -282,10 +296,14 @@ static uint16 findTail(void)
       break;
     }
 
+#if HAL_UART_DMA_RX_MAX == 256
+    idx++;
+#else
     if (++idx >= HAL_UART_DMA_RX_MAX)
     {
       idx = 0;
     }
+#endif
   } while (idx != dmaCfg.rxHead);
 
   return idx;
@@ -492,10 +510,14 @@ static uint16 HalUARTReadDMA(uint8 *buf, uint16 len)
     }
     *buf++ = HAL_UART_DMA_GET_RX_BYTE(dmaCfg.rxHead);
     HAL_UART_DMA_CLR_RX_BYTE(dmaCfg.rxHead);
+#if HAL_UART_DMA_RX_MAX == 256
+    (dmaCfg.rxHead)++;
+#else
     if (++(dmaCfg.rxHead) >= HAL_UART_DMA_RX_MAX)
     {
       dmaCfg.rxHead = 0;
     }
+#endif
   }
   PxOUT &= ~HAL_UART_Px_RTS;  // Re-enable the flow on any read.
 
@@ -517,11 +539,7 @@ static uint16 HalUARTWriteDMA(uint8 *buf, uint16 len)
   uint16 cnt;
   halIntState_t his;
   uint8 txSel;
-#if HAL_UART_DMA_TX_MAX < 256
-  uint8 txIdx;
-#else
-  uint16 txIdx;
-#endif
+  txIdx_t txIdx;
 
   // Enforce all or none.
   if ((len + dmaCfg.txIdx[dmaCfg.txSel]) > HAL_UART_DMA_TX_MAX)
@@ -580,7 +598,7 @@ static void HalUARTPollDMA(void)
 
   if (HAL_UART_DMA_NEW_RX_BYTE(dmaCfg.rxHead))
   {
-    uint16 tail = findTail();
+    rxIdx_t tail = findTail();
 
     // If the DMA has transferred in more Rx bytes, reset the Rx idle timer.
     if (dmaCfg.rxTail != tail)
@@ -623,7 +641,7 @@ static void HalUARTPollDMA(void)
   else if (cnt >= HAL_UART_DMA_HIGH)
   {
     evt = HAL_UART_RX_ABOUT_FULL;
-    PxOUT |= HAL_UART_Px_RTS;
+    PxOUT |= HAL_UART_Px_RTS;  // Disable Rx flow.
   }
   else if (cnt && !dmaCfg.rxTick)
   {
@@ -735,7 +753,9 @@ static uint16 HalUARTRxAvailDMA(void)
  *****************************************************************************/
 static void HalUARTSuspendDMA( void )
 {
+  PxOUT |= HAL_UART_Px_RTS;  // Disable Rx flow.
   UxCSR &= ~CSR_RE;
+  P0IEN |=  HAL_UART_Px_CTS;  // Enable the CTS ISR.
 }
 
 /******************************************************************************
@@ -749,8 +769,10 @@ static void HalUARTSuspendDMA( void )
  *****************************************************************************/
 static void HalUARTResumeDMA( void )
 {
+  P0IEN &= ~HAL_UART_Px_CTS;  // Disable the CTS ISR.
   UxUCR |= UCR_FLUSH;
   UxCSR |= CSR_RE;
+  PxOUT &= ~HAL_UART_Px_RTS;  // Re-enable Rx flow.
 }
 
 /******************************************************************************

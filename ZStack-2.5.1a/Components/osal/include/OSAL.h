@@ -1,14 +1,15 @@
-/**************************************************************************************************
-  Filename:       OSAL.h
-  Revised:        $Date: 2009-12-04 08:04:20 -0800 (Fri, 04 Dec 2009) $
-  Revision:       $Revision: 21276 $
+/******************************************************************************
+  Filename:     OSAL.h
+  Revised:      $Date: 2010-11-14 19:10:59 -0800 (Sun, 14 Nov 2010) $
+  Revision:     $Revision: 24409 $
 
-  Description:    This API allows the software components in the Z-stack to be written
-                  independently of the specifics of the operating system, kernel or tasking
-                  environment (including control loops or connect-to-interrupt systems).
+  Description:  This API allows the software components in the Z-Stack to be
+                written independently of the specifics of the operating system,
+                kernel, or tasking environment (including control loops or
+                connect-to-interrupt systems).
 
 
-  Copyright 2004-2009 Texas Instruments Incorporated. All rights reserved.
+  Copyright 2004-2010 Texas Instruments Incorporated. All rights reserved.
 
   IMPORTANT: Your use of this Software is limited to those specific rights
   granted under the terms of a software license agreement between the user
@@ -18,14 +19,14 @@
   limits your use, and you acknowledge, that the Software may not be modified,
   copied or distributed unless embedded on a Texas Instruments microcontroller
   or used solely and exclusively in conjunction with a Texas Instruments radio
-  frequency transceiver, which is integrated into your product.  Other than for
+  frequency transceiver, which is integrated into your product. Other than for
   the foregoing purpose, you may not use, reproduce, copy, prepare derivative
   works of, modify, distribute, perform, display or sell this Software and/or
   its documentation for any purpose.
 
   YOU FURTHER ACKNOWLEDGE AND AGREE THAT THE SOFTWARE AND DOCUMENTATION ARE
-  PROVIDED “AS IS” WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
-  INCLUDING WITHOUT LIMITATION, ANY WARRANTY OF MERCHANTABILITY, TITLE, 
+  PROVIDED “AS IS” WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+  INCLUDING WITHOUT LIMITATION, ANY WARRANTY OF MERCHANTABILITY, TITLE,
   NON-INFRINGEMENT AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL
   TEXAS INSTRUMENTS OR ITS LICENSORS BE LIABLE OR OBLIGATED UNDER CONTRACT,
   NEGLIGENCE, STRICT LIABILITY, CONTRIBUTION, BREACH OF WARRANTY, OR OTHER
@@ -36,8 +37,8 @@
   (INCLUDING BUT NOT LIMITED TO ANY DEFENSE THEREOF), OR OTHER SIMILAR COSTS.
 
   Should you have any questions regarding your right to use this Software,
-  contact Texas Instruments Incorporated at www.TI.com. 
-**************************************************************************************************/
+  contact Texas Instruments Incorporated at www.TI.com.
+******************************************************************************/
 
 #ifndef OSAL_H
 #define OSAL_H
@@ -57,8 +58,11 @@ extern "C"
 /*********************************************************************
  * MACROS
  */
-
-#define osal_offsetof(type, member) ((uint16) &(((type *) 0)->member))
+#if ( UINT_MAX == 65535 ) /* 8-bit and 16-bit devices */
+  #define osal_offsetof(type, member) ((uint16) &(((type *) 0)->member))
+#else /* 32-bit devices */
+  #define osal_offsetof(type, member) ((uint32) &(((type *) 0)->member))
+#endif
 
 #define OSAL_MSG_NEXT(msg_ptr)      ((osal_msg_hdr_t *) (msg_ptr) - 1)->next
 
@@ -67,7 +71,7 @@ extern "C"
 #define OSAL_MSG_Q_EMPTY(q_ptr)     (*(q_ptr) == NULL)
 
 #define OSAL_MSG_Q_HEAD(q_ptr)      (*(q_ptr))
-  
+
 #define OSAL_MSG_LEN(msg_ptr)      ((osal_msg_hdr_t *) (msg_ptr) - 1)->len
 
 #define OSAL_MSG_ID(msg_ptr)      ((osal_msg_hdr_t *) (msg_ptr) - 1)->dest_id
@@ -78,7 +82,6 @@ extern "C"
 
 /*** Interrupts ***/
 #define INTS_ALL    0xFF
-
 
 /*********************************************************************
  * TYPEDEFS
@@ -206,6 +209,12 @@ typedef void * osal_msg_q_t;
 #else
   extern void osal_start_system( void );
 #endif
+
+  /*
+   * One Pass Throu the OSAL Processing Loop
+   */
+  extern void osal_run_system( void );
+
   /*
    * Get the active task ID
    */
@@ -227,7 +236,7 @@ typedef void * osal_msg_q_t;
   /*
    * Memory Duplicate - allocates and copies
    */
-  extern ONLY NULL_OK void *osal_memdup( const void GENERIC *src, unsigned int len );
+  extern void *osal_memdup( const void GENERIC *src, unsigned int len );
 
   /*
    * Reverse Memory copy
@@ -275,6 +284,11 @@ typedef void * osal_msg_q_t;
    * Buffer an uint24 value - LSB first
    */
   extern uint8* osal_buffer_uint24( uint8 *buf, uint24 val );
+
+  /*
+   * Is all of the array elements set to a value?
+   */
+  extern uint8 osal_isbufset( uint8 *buf, uint8 val, uint8 len );
 
 /*********************************************************************
 *********************************************************************/

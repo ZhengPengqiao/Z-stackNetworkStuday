@@ -1,12 +1,13 @@
 /***************************************************************************************************
-  Filename:       MTEL.c
-  Revised:        $Date: 2009-10-28 00:05:19 -0700 (Wed, 28 Oct 2009) $
-  Revision:       $Revision: 20998 $
+  Filename:       MT.c
+  Revised:        $Date: 2011-06-07 12:12:44 -0700 (Tue, 07 Jun 2011) $
+  Revision:       $Revision: 26238 $
 
-  Description:    MonitorTest Event Loop functions.  Everything in the
-                  MonitorTest Task (except the serial driver).
+  Description:    MonitorTest Event Loop functions.
+                  Everything in the MonitorTest Task (except the serial driver).
 
-  Copyright 2007 Texas Instruments Incorporated. All rights reserved.
+
+  Copyright 2007-2011 Texas Instruments Incorporated. All rights reserved.
 
   IMPORTANT: Your use of this Software is limited to those specific rights
   granted under the terms of a software license agreement between the user
@@ -36,20 +37,18 @@
   Should you have any questions regarding your right to use this Software,
   contact Texas Instruments Incorporated at www.TI.com.
 
- ***************************************************************************************************/
+ **************************************************************************************************/
 
-
-/***************************************************************************************************
+/**************************************************************************************************
  * INCLUDES
- ***************************************************************************************************/
+ **************************************************************************************************/
+
 #include "ZComDef.h"
 #include "MT.h"
 #include "MT_APP.h"
 #include "MT_DEBUG.h"
 #include "MT_UTIL.h"
 #include "MT_SYS.h"
-#include "MT_SAPI.h"
-#include "AF.h"
 
 #include "OnBoard.h"
 #include "OSAL.h"
@@ -65,6 +64,8 @@
   #include "ZDObject.h"
   #include "ssp.h"
   #include "nwk_util.h"
+  #include "AF.h"
+  #include "MT_SAPI.h"
 #endif
 
 #if defined( MT_MAC_FUNC ) || defined( MT_MAC_CB_FUNC )
@@ -87,6 +88,10 @@
 #if defined (MT_SAPI_FUNC)
 	#include "MT_SAPI.h"
 #endif
+#if defined (MT_OTA_FUNC)
+  #include "MT_OTA.h"
+#endif
+
 #if defined( APP_TP )
  #include "TestProfile.h"
 #endif
@@ -110,16 +115,10 @@
 #include "hal_key.h"
 #include "MT_UART.h"
 
-/***************************************************************************************************
- * MACROS
- ***************************************************************************************************/
-#define MTEL_DEBUG_INFO( nParams, p1, p2, p3 ) DEBUG_INFO( COMPID_MTEL, nParams, p1, p2, p3 )
-
-#define MT_ERROR_SRSP_LEN   3
-
-/***************************************************************************************************
+/**************************************************************************************************
  * CONSTANTS
- ***************************************************************************************************/
+ **************************************************************************************************/
+
 mtProcessMsg_t mtProcessIncoming[] =
 {
   NULL,
@@ -178,38 +177,24 @@ mtProcessMsg_t mtProcessIncoming[] =
   NULL,
 #endif
 
+#if defined (MT_OTA_FUNC)
+  MT_OtaCommandProcessing,
+#else
+  NULL,
+#endif
 };
 
-/***************************************************************************************************
- * TYPEDEFS
- ***************************************************************************************************/
-
-/***************************************************************************************************
+/**************************************************************************************************
  * GLOBAL VARIABLES
- ***************************************************************************************************/
-UINT16 save_cmd;
+ **************************************************************************************************/
 
-byte MT_TaskID;
 byte debugThreshold;
 byte debugCompId;
 
-/***************************************************************************************************
- * EXTERNAL FUNCTIONS
- ***************************************************************************************************/
-extern unsigned int mac_sim_eventLoop( void );
-
-#ifdef MACSIM
-extern void MACSIM_TranslateMsg( byte *buf, byte bLen );  /*  Used to pass Zignet message */
-#endif
-
-
-/***************************************************************************************************
- * LOCAL VARIABLES
- ***************************************************************************************************/
-
-/***************************************************************************************************
+/**************************************************************************************************
  * LOCAL FUNCTIONS
- ***************************************************************************************************/
+ **************************************************************************************************/
+
 void MT_MsgQueueInit( void );
 void MT_ResetMsgQueue( void );
 byte MT_QueueMsg( byte *msg , byte len );
@@ -219,21 +204,30 @@ void MT_ProcessQueue( void );
 void MT_ProcessAppUserCmd( byte *pData );
 #endif
 
-/***************************************************************************************************
- * @fn      MT_Init()
+/**************************************************************************************************
+ * @fn         MT_Init
  *
- * @brief   Initialize MT.
+ * @brief      This function is the secondary initialization that resolves conflicts during
+ *             osalInitTasks(). For example, since MT is the highest priority task, and
+ *             specifically because the MT task is initialized before the ZDApp task, if MT_Init()
+ *             registers anything with ZDO_RegisterForZdoCB(), it is wiped out when ZDApp task
+ *             initialization invokes ZDApp_InitZdoCBFunc().
+ *             There may be other existing or future such races, so try to do all possible
+ *             MT initialization here vice in MT_TaskInit().
  *
- * @param   uint8 taskId - taskId
+ * input parameters
  *
- * @return  void
- ***************************************************************************************************/
-void MT_Init(uint8 taskID)
+ * None.
+ *
+ * output parameters
+ *
+ * None.
+ *
+ * @return      None.
+ **************************************************************************************************
+ */
+void MT_Init(void)
 {
-  MT_TaskID = taskID;
-  debugThreshold = 0;
-  debugCompId = 0;
-  
 #if defined (MT_ZDO_FUNC)
   MT_ZdoInit();
 #endif
@@ -306,8 +300,8 @@ void MT_BuildAndSendZToolResponse(uint8 cmdType, uint8 cmdId, uint8 dataLen, uin
  ***************************************************************************************************/
 void MT_ProcessIncoming(uint8 *pBuf)
 {
-  mtProcessMsg_t  func;
-  uint8           rsp[MT_ERROR_SRSP_LEN];
+  mtProcessMsg_t func;
+  uint8 rsp[MT_RPC_FRAME_HDR_SZ];
 
   /* pre-build response message:  | status | cmd0 | cmd1 | */
   rsp[1] = pBuf[MT_RPC_POS_CMD0];
@@ -341,10 +335,10 @@ void MT_ProcessIncoming(uint8 *pBuf)
   /* if error and this was an SREQ, send error message */
   if ((rsp[0] != MT_RPC_SUCCESS) && ((rsp[1] & MT_RPC_CMD_TYPE_MASK) == MT_RPC_CMD_SREQ))
   {
-    MT_BuildAndSendZToolResponse(((uint8)MT_RPC_CMD_SRSP | (uint8)MT_RPC_SYS_RES0), 0, MT_ERROR_SRSP_LEN, rsp);
+    MT_BuildAndSendZToolResponse(((uint8)MT_RPC_CMD_SRSP | (uint8)MT_RPC_SYS_RES0), 0,
+                                                                  MT_RPC_FRAME_HDR_SZ, rsp);
   }
 }
-
 
 /***************************************************************************************************
  * @fn      MTProcessAppRspMsg
@@ -412,6 +406,7 @@ uint8 *MT_Word2Buf( uint8 *pBuf, uint16 *pWord, uint8 len )
 
   return pBuf;
 }
+#if !defined(NONWK)
 /***************************************************************************************************
  * @fn      MT_BuildEndpointDesc
  *
@@ -525,5 +520,6 @@ uint8 MT_BuildEndpointDesc( uint8 *pBuf, void *param )
 
   return ret;
 }
+#endif
 /***************************************************************************************************
 ***************************************************************************************************/

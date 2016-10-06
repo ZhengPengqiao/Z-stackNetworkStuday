@@ -1,12 +1,12 @@
 /**************************************************************************************************
   Filename:       AF.c
-  Revised:        $Date: 2009-10-29 00:15:32 -0700 (Thu, 29 Oct 2009) $
-  Revision:       $Revision: 21013 $
+  Revised:        $Date: 2011-11-18 16:03:29 -0800 (Fri, 18 Nov 2011) $
+  Revision:       $Revision: 28423 $
 
   Description:    Application Framework - Device Description helper functions
 
 
-  Copyright 2004-2009 Texas Instruments Incorporated. All rights reserved.
+  Copyright 2004-2011 Texas Instruments Incorporated. All rights reserved.
 
   IMPORTANT: Your use of this Software is limited to those specific rights
   granted under the terms of a software license agreement between the user
@@ -89,30 +89,10 @@
                           (cID), (len), (buf), (transID), (options), (radius) )
 
 /*********************************************************************
- * CONSTANTS
- */
-
-/*********************************************************************
- * TYPEDEFS
- */
-
-/*********************************************************************
  * GLOBAL VARIABLES
  */
 
 epList_t *epList;
-
-/*********************************************************************
- * EXTERNAL VARIABLES
- */
-
-/*********************************************************************
- * EXTERNAL FUNCTIONS
- */
-
-/*********************************************************************
- * LOCAL VARIABLES
- */
 
 /*********************************************************************
  * LOCAL FUNCTIONS
@@ -120,15 +100,11 @@ epList_t *epList;
 
 static void afBuildMSGIncoming( aps_FrameFormat_t *aff, endPointDesc_t *epDesc,
                 zAddrType_t *SrcAddress, uint16 SrcPanId, NLDE_Signal_t *sig,
-                byte SecurityUse, uint32 timestamp );
+                uint8 nwkSeqNum, uint8 SecurityUse, uint32 timestamp );
 
-static epList_t *afFindEndPointDescList( byte EndPoint );
+static epList_t *afFindEndPointDescList( uint8 EndPoint );
 
 static pDescCB afGetDescCB( endPointDesc_t *epDesc );
-
-/*********************************************************************
- * NETWORK LAYER CALLBACKS
- */
 
 /*********************************************************************
  * PUBLIC FUNCTIONS
@@ -142,12 +118,10 @@ static pDescCB afGetDescCB( endPointDesc_t *epDesc );
  * @param   none
  *
  * @return  none
- */
 void afInit( void )
 {
-  // Start with no endpoint defined
-  epList = NULL;
 }
+ */
 
 /*********************************************************************
  * @fn      afRegisterExtended
@@ -163,33 +137,17 @@ void afInit( void )
  */
 epList_t *afRegisterExtended( endPointDesc_t *epDesc, pDescCB descFn )
 {
-  epList_t *ep;
-  epList_t *epSearch;
+  epList_t *ep = osal_mem_alloc(sizeof(epList_t));
 
-  ep = osal_mem_alloc( sizeof ( epList_t ) );
-  if ( ep )
+  if (ep != NULL)
   {
-    // Fill in the new list entry
+    ep->nextDesc = epList;
+    epList = ep;
     ep->epDesc = epDesc;
-
-    // Default to allow Match Descriptor.
-    ep->flags = eEP_AllowMatch;
     ep->pfnDescCB = descFn;
-    ep->nextDesc = NULL;
-
-    // Does a list exist?
-    if ( epList == NULL )
-      epList = ep;  // Make this the first entry
-    else
-    {
-      // Look for the end of the list
-      epSearch = epList;
-      while( epSearch->nextDesc != NULL )
-        epSearch = epSearch->nextDesc;
-
-      // Add new entry to end of list
-      epSearch->nextDesc = ep;
-    }
+    ep->apsfCfg.frameDelay = APSF_DEFAULT_INTERFRAME_DELAY;
+    ep->apsfCfg.windowSize = APSF_DEFAULT_WINDOW_SIZE;
+    ep->flags = eEP_AllowMatch;  // Default to allow Match Descriptor.
   }
 
   return ep;
@@ -210,17 +168,67 @@ epList_t *afRegisterExtended( endPointDesc_t *epDesc, pDescCB descFn )
  */
 afStatus_t afRegister( endPointDesc_t *epDesc )
 {
-  epList_t *ep;
-  
-  // Look for duplicate endpoint
-  if ( afFindEndPointDescList( epDesc->endPoint ) )
-    return ( afStatus_INVALID_PARAMETER );
-  
-  ep = afRegisterExtended( epDesc, NULL );
+  if (afFindEndPointDescList(epDesc->endPoint))  // Look for duplicate endpoint.
+  {
+    return afStatus_INVALID_PARAMETER;
+  }
 
-  return ((ep == NULL) ? afStatus_MEM_FAIL : afStatus_SUCCESS);
+  return ((NULL == afRegisterExtended(epDesc, NULL)) ? afStatus_MEM_FAIL : afStatus_SUCCESS);
 }
 
+/*********************************************************************
+ * @fn      afDelete
+ *
+ * @brief   Delete an Application's EndPoint descriptor and frees the memory
+ *
+ * @param   EndPoint - Application Endpoint to delete
+ *
+ * @return  afStatus_SUCCESS - endpoint deleted
+ *          afStatus_INVALID_PARAMETER - endpoint not found
+ *          afStatus_FAILED - endpoint list empty
+ */
+afStatus_t afDelete( uint8 EndPoint )
+{
+  epList_t *epCurrent;
+  epList_t *epPrevious;
+
+  if (epList != NULL)
+  {
+    epPrevious = epCurrent = epList;
+
+    // first element of the list matches
+    if (epCurrent->epDesc->endPoint == EndPoint)
+    {
+      epList = epCurrent->nextDesc;
+      osal_mem_free(epCurrent);
+
+      return (afStatus_SUCCESS);
+    }
+    else
+    {
+      // search the list
+      for (epCurrent = epPrevious->nextDesc; epCurrent != NULL; epPrevious = epCurrent)
+      {
+        if (epCurrent->epDesc->endPoint == EndPoint)
+        {
+          epPrevious->nextDesc = epCurrent->nextDesc;
+          osal_mem_free(epCurrent);
+
+          // delete the entry and free the memory
+          return (afStatus_SUCCESS);
+        }
+      }
+    }
+
+    // no endpoint found
+    return (afStatus_INVALID_PARAMETER);
+  }
+  else
+  {
+    // epList is empty
+    return (afStatus_FAILED);
+  }
+}
 
 /*********************************************************************
  * @fn          afDataConfirm
@@ -267,7 +275,7 @@ void afDataConfirm( uint8 endPoint, uint8 transID, ZStatus_t status )
 #endif
     {
       /* send message through task message */
-      osal_msg_send( *(epDesc->task_id), (byte *)msgPtr );
+      osal_msg_send( *(epDesc->task_id), (uint8 *)msgPtr );
     }
   }
 }
@@ -279,24 +287,26 @@ void afDataConfirm( uint8 endPoint, uint8 transID, ZStatus_t status )
  *
  * @param       aff  - pointer to APS frame format
  * @param       SrcAddress  - Source address
+ * @param       SrcPanId  - Source PAN ID
  * @param       sig - incoming message's link quality
+ * @param       nwkSeqNum - incoming network sequence number (from nwk header frame)
  * @param       SecurityUse - Security enable/disable
+ * @param       timestamp - the MAC Timer2 timestamp at Rx.
  *
  * @return      none
  */
 void afIncomingData( aps_FrameFormat_t *aff, zAddrType_t *SrcAddress, uint16 SrcPanId,
-                     NLDE_Signal_t *sig, byte SecurityUse, uint32 timestamp )
+                     NLDE_Signal_t *sig, uint8 nwkSeqNum, uint8 SecurityUse, uint32 timestamp )
 {
   endPointDesc_t *epDesc = NULL;
-  uint16 epProfileID = 0xFFFF;  // Invalid Profile ID
   epList_t *pList = epList;
-#if !defined ( APS_NO_GROUPS )    
+#if !defined ( APS_NO_GROUPS )
   uint8 grpEp = APS_GROUPS_EP_NOT_FOUND;
-#endif  
+#endif
 
   if ( ((aff->FrmCtrl & APS_DELIVERYMODE_MASK) == APS_FC_DM_GROUP) )
   {
-#if !defined ( APS_NO_GROUPS )    
+#if !defined ( APS_NO_GROUPS )
     // Find the first endpoint for this group
     grpEp = aps_FindGroupForEndpoint( aff->GroupID, APS_GROUPS_FIND_FIRST );
     if ( grpEp == APS_GROUPS_EP_NOT_FOUND )
@@ -309,7 +319,7 @@ void afIncomingData( aps_FrameFormat_t *aff, zAddrType_t *SrcAddress, uint16 Src
     pList = afFindEndPointDescList( epDesc->endPoint );
 #else
     return; // Not supported
-#endif    
+#endif
   }
   else if ( aff->DstEndPoint == AF_BROADCAST_ENDPOINT )
   {
@@ -326,6 +336,8 @@ void afIncomingData( aps_FrameFormat_t *aff, zAddrType_t *SrcAddress, uint16 Src
 
   while ( epDesc )
   {
+    uint16 epProfileID = 0xFFFF;  // Invalid Profile ID
+
     if ( pList->pfnDescCB )
     {
       uint16 *pID = (uint16 *)(pList->pfnDescCB(
@@ -345,13 +357,23 @@ void afIncomingData( aps_FrameFormat_t *aff, zAddrType_t *SrcAddress, uint16 Src
          ((epDesc->endPoint == ZDO_EP) && (aff->ProfileID == ZDO_PROFILE_ID)) )
     {
       {
-        afBuildMSGIncoming( aff, epDesc, SrcAddress, SrcPanId, sig, SecurityUse, timestamp );
+        // Save original endpoint
+        uint8 endpoint = aff->DstEndPoint;
+
+        // overwrite with descriptor's endpoint
+        aff->DstEndPoint = epDesc->endPoint;
+
+        afBuildMSGIncoming( aff, epDesc, SrcAddress, SrcPanId, sig,
+                           nwkSeqNum, SecurityUse, timestamp );
+
+        // Restore with original endpoint
+        aff->DstEndPoint = endpoint;
       }
     }
 
     if ( ((aff->FrmCtrl & APS_DELIVERYMODE_MASK) == APS_FC_DM_GROUP) )
     {
-#if !defined ( APS_NO_GROUPS )      
+#if !defined ( APS_NO_GROUPS )
       // Find the next endpoint for this group
       grpEp = aps_FindGroupForEndpoint( aff->GroupID, grpEp );
       if ( grpEp == APS_GROUPS_EP_NOT_FOUND )
@@ -364,7 +386,7 @@ void afIncomingData( aps_FrameFormat_t *aff, zAddrType_t *SrcAddress, uint16 Src
       pList = afFindEndPointDescList( epDesc->endPoint );
 #else
       return;
-#endif      
+#endif
     }
     else if ( aff->DstEndPoint == AF_BROADCAST_ENDPOINT )
     {
@@ -389,12 +411,12 @@ void afIncomingData( aps_FrameFormat_t *aff, zAddrType_t *SrcAddress, uint16 Src
  * @return      pointer to next in data buffer
  */
 static void afBuildMSGIncoming( aps_FrameFormat_t *aff, endPointDesc_t *epDesc,
-                 zAddrType_t *SrcAddress, uint16 SrcPanId, NLDE_Signal_t *sig, 
-                 byte SecurityUse, uint32 timestamp )
+                 zAddrType_t *SrcAddress, uint16 SrcPanId, NLDE_Signal_t *sig,
+                 uint8 nwkSeqNum, uint8 SecurityUse, uint32 timestamp )
 {
   afIncomingMSGPacket_t *MSGpkt;
-  const byte len = sizeof( afIncomingMSGPacket_t ) + aff->asduLength;
-  byte *asdu = aff->asdu;
+  const uint8 len = sizeof( afIncomingMSGPacket_t ) + aff->asduLength;
+  uint8 *asdu = aff->asdu;
   MSGpkt = (afIncomingMSGPacket_t *)osal_msg_allocate( len );
 
   if ( MSGpkt == NULL )
@@ -414,6 +436,7 @@ static void afBuildMSGIncoming( aps_FrameFormat_t *aff, endPointDesc_t *epDesc,
   MSGpkt->rssi = sig->rssi;
   MSGpkt->SecurityUse = SecurityUse;
   MSGpkt->timestamp = timestamp;
+  MSGpkt->nwkSeqNum = nwkSeqNum;
   MSGpkt->macDestAddr = aff->macDestAddr;
   MSGpkt->srcAddr.panId = SrcPanId;
   MSGpkt->cmd.TransSeqNumber = 0;
@@ -421,7 +444,7 @@ static void afBuildMSGIncoming( aps_FrameFormat_t *aff, endPointDesc_t *epDesc,
 
   if ( MSGpkt->cmd.DataLength )
   {
-    MSGpkt->cmd.Data = (byte *)(MSGpkt + 1);
+    MSGpkt->cmd.Data = (uint8 *)(MSGpkt + 1);
     osal_memcpy( MSGpkt->cmd.Data, asdu, MSGpkt->cmd.DataLength );
   }
   else
@@ -492,6 +515,23 @@ afStatus_t AF_DataRequest( afAddrType_t *dstAddr, endPointDesc_t *srcEP,
   }
 #endif
 
+  // Check if route is available before sending data
+  if ( options & AF_LIMIT_CONCENTRATOR  )
+  {
+    if ( dstAddr->addrMode != afAddr16Bit )
+    {
+      return ( afStatus_INVALID_PARAMETER );
+    }
+
+    // First, make sure the destination is not its self, then check for an existing route.
+    if ( (dstAddr->addr.shortAddr != NLME_GetShortAddr())
+        && (RTG_CheckRtStatus( dstAddr->addr.shortAddr, RT_ACTIVE, (MTO_ROUTE | NO_ROUTE_CACHE) ) != RTG_SUCCESS) )
+    {
+      // A valid route to a concentrator wasn't found
+      return ( afStatus_NO_ROUTE );
+    }
+  }
+
   // Validate broadcasting
   if ( ( dstAddr->addrMode == afAddr16Bit     ) ||
        ( dstAddr->addrMode == afAddrBroadcast )    )
@@ -517,14 +557,14 @@ afStatus_t AF_DataRequest( afAddrType_t *dstAddr, endPointDesc_t *srcEP,
   {
     return afStatus_INVALID_PARAMETER;
   }
-  
+
   // Set destination address
   req.dstAddr.addrMode = dstAddr->addrMode;
   if ( dstAddr->addrMode == afAddr64Bit )
     osal_cpyExtAddr( req.dstAddr.addr.extAddr, dstAddr->addr.extAddr );
   else
     req.dstAddr.addr.shortAddr = dstAddr->addr.shortAddr;
-  
+
   req.profileID = ZDO_PROFILE_ID;
 
   if ( (pfnDescCB = afGetDescCB( srcEP )) )
@@ -564,6 +604,11 @@ afStatus_t AF_DataRequest( afAddrType_t *dstAddr, endPointDesc_t *srcEP,
   else
   {
     mtu.aps.secure = FALSE;
+  }
+
+  if ( options & AF_PREPROCESS )
+  {
+    req.txOptions |=  APS_TX_OPTIONS_PREPROCESS;
   }
 
   mtu.kvp = FALSE;
@@ -666,9 +711,9 @@ afStatus_t AF_DataRequestSrcRtg( afAddrType_t *dstAddr, endPointDesc_t *srcEP,
                            uint8 options, uint8 radius, uint8 relayCnt, uint16* pRelayList )
 {
   uint8 status;
-  
+
   /* Add the source route to the source routing table */
-  status = RTG_AddSrcRtgEntry_Guaranteed( dstAddr->addr.shortAddr, relayCnt, 
+  status = RTG_AddSrcRtgEntry_Guaranteed( dstAddr->addr.shortAddr, relayCnt,
                                          pRelayList );
 
   if( status == RTG_SUCCESS)
@@ -701,26 +746,19 @@ afStatus_t AF_DataRequestSrcRtg( afAddrType_t *dstAddr, endPointDesc_t *srcEP,
  *
  * @return  the address to the endpoint/interface description entry
  */
-static epList_t *afFindEndPointDescList( byte EndPoint )
+static epList_t *afFindEndPointDescList( uint8 EndPoint )
 {
   epList_t *epSearch;
 
-  // Start at the beginning
-  epSearch = epList;
-
-  // Look through the list until the end
-  while ( epSearch )
+  for (epSearch = epList; epSearch != NULL; epSearch = epSearch->nextDesc)
   {
-    // Is there a match?
-    if ( epSearch->epDesc->endPoint == EndPoint )
+    if (epSearch->epDesc->endPoint == EndPoint)
     {
-      return ( epSearch );
+      break;
     }
-    else
-      epSearch = epSearch->nextDesc;  // Next entry
   }
 
-  return ( (epList_t *)NULL );
+  return epSearch;
 }
 
 /*********************************************************************
@@ -733,7 +771,7 @@ static epList_t *afFindEndPointDescList( byte EndPoint )
  *
  * @return  the address to the endpoint/interface description entry
  */
-endPointDesc_t *afFindEndPointDesc( byte EndPoint )
+endPointDesc_t *afFindEndPointDesc( uint8 EndPoint )
 {
   epList_t *epSearch;
 
@@ -755,10 +793,10 @@ endPointDesc_t *afFindEndPointDesc( byte EndPoint )
  *
  * @return  Non-zero to indicate that the descriptor memory must be freed.
  */
-byte afFindSimpleDesc( SimpleDescriptionFormat_t **ppDesc, byte EP )
+uint8 afFindSimpleDesc( SimpleDescriptionFormat_t **ppDesc, uint8 EP )
 {
   epList_t *epItem = afFindEndPointDescList( EP );
-  byte rtrn = FALSE;
+  uint8 rtrn = FALSE;
 
   if ( epItem )
   {
@@ -909,10 +947,10 @@ uint8 afSetMatch( uint8 ep, uint8 action )
  *
  * @return  number of endpoints
  */
-byte afNumEndPoints( void )
+uint8 afNumEndPoints( void )
 {
   epList_t *epSearch;
-  byte endpoints;
+  uint8 endpoints;
 
   // Start at the beginning
   epSearch = epList;
@@ -937,10 +975,10 @@ byte afNumEndPoints( void )
  *
  * @return  void
  */
-void afEndPoints( byte *epBuf, byte skipZDO )
+void afEndPoints( uint8 *epBuf, uint8 skipZDO )
 {
   epList_t *epSearch;
-  byte endPoint;
+  uint8 endPoint;
 
   // Start at the beginning
   epSearch = epList;
@@ -956,16 +994,93 @@ void afEndPoints( byte *epBuf, byte skipZDO )
   }
 }
 
-
-void afCopyAddress ( afAddrType_t *afAddr, zAddrType_t *zAddr )
+/*********************************************************************
+ * @fn      afCopyAddress
+ *
+ * @brief   Fills in the passed in afAddrType_t parameter with the corresponding information
+ *          from the zAddrType_t parameter.
+ *
+ * @param   epBuf - pointer to mem used
+ *
+ * @return  void
+ */
+void afCopyAddress( afAddrType_t *afAddr, zAddrType_t *zAddr )
 {
   afAddr->addrMode = (afAddrMode_t)zAddr->addrMode;
   if ( zAddr->addrMode == Addr64Bit )
-    osal_cpyExtAddr( afAddr->addr.extAddr, zAddr->addr.extAddr );
+  {
+    (void)osal_cpyExtAddr( afAddr->addr.extAddr, zAddr->addr.extAddr );
+  }
   else
+  {
     afAddr->addr.shortAddr = zAddr->addr.shortAddr;
+  }
+
+  // Since zAddrType_t has no INTER-PAN information, set the panId member to zero.
+  afAddr->panId = 0;
 }
 
-/*********************************************************************
-*********************************************************************/
+/**************************************************************************************************
+ * @fn          afAPSF_ConfigGet
+ *
+ * @brief       This function ascertains the fragmentation configuration that corresponds to
+ *              the specified EndPoint.
+ *
+ * input parameters
+ *
+ * @param       endPoint - The source EP of a Tx or destination EP of a Rx fragmented message.
+ *
+ * output parameters
+ *
+ * @param       pCfg - A pointer to an APSF configuration structure to fill with values.
+ *
+ * @return      None.
+ */
+void afAPSF_ConfigGet(uint8 endPoint, afAPSF_Config_t *pCfg)
+{
+  epList_t *pList = afFindEndPointDescList(endPoint);
 
+  if (pList == NULL)
+  {
+    pCfg->frameDelay = APSF_DEFAULT_INTERFRAME_DELAY;
+    pCfg->windowSize = APSF_DEFAULT_WINDOW_SIZE;
+  }
+  else
+  {
+    (void)osal_memcpy(pCfg, &pList->apsfCfg, sizeof(afAPSF_Config_t));
+  }
+}
+
+/**************************************************************************************************
+ * @fn          afAPSF_ConfigSet
+ *
+ * @brief       This function attempts to set the fragmentation configuration that corresponds to
+ *              the specified EndPoint.
+ *
+ * input parameters
+ *
+ * @param       endPoint - The specific EndPoint for which to set the fragmentation configuration.
+ * @param       pCfg - A pointer to an APSF configuration structure to fill with values.
+ *
+ * output parameters
+ *
+ * None.
+ *
+ * @return      afStatus_SUCCESS for success.
+ *              afStatus_INVALID_PARAMETER if the specified EndPoint is not registered.
+ */
+afStatus_t afAPSF_ConfigSet(uint8 endPoint, afAPSF_Config_t *pCfg)
+{
+  epList_t *pList = afFindEndPointDescList(endPoint);
+
+  if (pList == NULL)
+  {
+    return afStatus_INVALID_PARAMETER;
+  }
+
+  (void)osal_memcpy(&pList->apsfCfg, pCfg, sizeof(afAPSF_Config_t));
+  return afStatus_SUCCESS;
+}
+
+/**************************************************************************************************
+*/

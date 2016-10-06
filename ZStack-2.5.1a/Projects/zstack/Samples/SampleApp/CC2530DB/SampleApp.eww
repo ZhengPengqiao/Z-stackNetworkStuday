@@ -6,7 +6,11 @@
   </project>
   <batchBuild>
     <batchDefinition>
-      <name>Build All</name>
+      <name>ALL</name>
+      <member>
+        <project>SampleApp</project>
+        <configuration>DemoEB</configuration>
+      </member>
       <member>
         <project>SampleApp</project>
         <configuration>CoordinatorEB</configuration>
@@ -18,26 +22,6 @@
       <member>
         <project>SampleApp</project>
         <configuration>EndDeviceEB</configuration>
-      </member>
-      <member>
-        <project>SampleApp</project>
-        <configuration>DemoEB</configuration>
-      </member>
-      <member>
-        <project>SampleApp</project>
-        <configuration>CoordinatorEB-Pro</configuration>
-      </member>
-      <member>
-        <project>SampleApp</project>
-        <configuration>RouterEB-Pro</configuration>
-      </member>
-      <member>
-        <project>SampleApp</project>
-        <configuration>EndDeviceEB-Pro</configuration>
-      </member>
-      <member>
-        <project>SampleApp</project>
-        <configuration>DemoEB-Pro</configuration>
       </member>
     </batchDefinition>
   </batchBuild>

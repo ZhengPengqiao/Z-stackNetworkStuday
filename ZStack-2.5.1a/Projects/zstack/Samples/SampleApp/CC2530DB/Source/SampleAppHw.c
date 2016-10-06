@@ -1,12 +1,12 @@
-/**************************************************************************************************
+/******************************************************************************
   Filename:       SampleAppHw.c
-  Revised:        $Date: 2009-03-18 15:56:27 -0700 (Wed, 18 Mar 2009) $
-  Revision:       $Revision: 19453 $
+  Revised:        $Date: 2010-11-15 18:17:40 -0800 (Mon, 15 Nov 2010) $
+  Revision:       $Revision: 24415 $
 
   Description:    Hardware setup for SampleApp
 
 
-  Copyright 2007 Texas Instruments Incorporated. All rights reserved.
+  Copyright 2008-2010 Texas Instruments Incorporated. All rights reserved.
 
   IMPORTANT: Your use of this Software is limited to those specific rights
   granted under the terms of a software license agreement between the user
@@ -16,7 +16,7 @@
   limits your use, and you acknowledge, that the Software may not be modified,
   copied or distributed unless embedded on a Texas Instruments microcontroller
   or used solely and exclusively in conjunction with a Texas Instruments radio
-  frequency transceiver, which is integrated into your product.  Other than for
+  frequency transceiver, which is integrated into your product. Other than for
   the foregoing purpose, you may not use, reproduce, copy, prepare derivative
   works of, modify, distribute, perform, display or sell this Software and/or
   its documentation for any purpose.
@@ -35,25 +35,27 @@
 
   Should you have any questions regarding your right to use this Software,
   contact Texas Instruments Incorporated at www.TI.com.
-**************************************************************************************************/
+******************************************************************************/
 
-/**************************************************************************************************
+/******************************************************************************
  * INCLUDES
- **************************************************************************************************/
+ */
 #include "ZComDef.h"
 #include "hal_mcu.h"
 #include "hal_defs.h"
 
 #include "SampleAppHw.h"
 
-
-/**************************************************************************************************
+/******************************************************************************
  * CONSTANTS
- **************************************************************************************************/
-/* NOTES:   Jumper should be between Header P18 pin 7 and header P18 pin 9 on the SmartRF05
- *          P0_2 - P18 pin 7
- *          P0_3 - P18 pin 9
  */
+
+/* NOTE:  A jumper on SmartRF05 header P18 is used to select device start-up as
+ *        a ZigBee Coordinator. The jumper connects GPIO pins P0.2 and P0.3:
+ *        On SmartRF05 Rev 1.3 or earlier:  P0.2=P18 pin 7, P0.3=P18 pin 9
+ *        On SmartRF05 Rev 1.7 or later:    P0.2=P18 pin 9, P0.3=P18 pin 11
+ */
+
 #define JUMPERIN_BIT  BV(2)  //P0.2
 #define JUMPERIN_SEL  P0SEL
 #define JUMPERIN_DIR  P0DIR
@@ -64,52 +66,49 @@
 #define JUMPEROUT_DIR P0DIR
 #define JUMPEROUT     P0
 
-
-/**************************************************************************************************
+/******************************************************************************
  * @fn      readCoordinatorJumper
  *
- * @brief   Checks for a jumper to determine if the device should
- *          become a coordinator
+ * @brief   Checks for a jumper between 2 GPIO pins to determine if the device
+ *          should start-up as a ZigBee Coordinator
  *
  * @return  TRUE if the jumper is there, FALSE if not
- **************************************************************************************************/
+ */
 uint8 readCoordinatorJumper( void )
 {
-
-  uint8 jumpered = TRUE;
+  uint8 i,j;
   uint8 result;
-  uint8 x,y;
 
   JUMPERIN_SEL  &= ~(JUMPERIN_BIT);
-  JUMPEROUT_SEL &= ~(JUMPEROUT_BIT);
   JUMPERIN_DIR  &= ~(JUMPERIN_BIT);
+
+  JUMPEROUT_SEL &= ~(JUMPEROUT_BIT);
   JUMPEROUT_DIR |= JUMPEROUT_BIT;
 
-  jumpered = TRUE;
+  // Start with output bit OFF
+  JUMPEROUT &= ~(JUMPEROUT_BIT);
 
-  for ( x = 0; x < 8; x++ )
+  for ( i = 0; i < 8; i++ )
   {
-    if ( x & 0x01 )
+    for ( j = 0; j < 8; j++ )
     {
-      JUMPEROUT |= JUMPEROUT_BIT;
-      for ( y = 0; y < 8; y++ );
+      // Burn time for input to see change
       result = JUMPERIN & JUMPERIN_BIT;
-      if ( result != JUMPERIN_BIT )
-        jumpered = FALSE;
     }
-    else
+
+    j = i & 0x01;
+    if (((j == 0) && (result != 0)) ||
+        ((j != 0) && (result != JUMPERIN_BIT)))
     {
-      JUMPEROUT &= ~(JUMPEROUT_BIT);
-      for ( y = 0; y < 8; y++ );
-      result = JUMPERIN & JUMPERIN_BIT;
-      if ( result != 0x00 )
-        jumpered = FALSE;
+      return ( FALSE );
     }
+
+    // Toggle the output bit
+    JUMPEROUT ^= JUMPEROUT_BIT;
   }
 
-  return ( jumpered );
-
+  return ( TRUE );
 }
 
-/**************************************************************************************************
-**************************************************************************************************/
+/******************************************************************************
+ */

@@ -1,12 +1,12 @@
 /**************************************************************************************************
   Filename:       AF.h
-  Revised:        $Date: 2009-07-09 17:11:17 -0700 (Thu, 09 Jul 2009) $
-  Revision:       $Revision: 20288 $
+  Revised:        $Date: 2011-11-18 16:03:29 -0800 (Fri, 18 Nov 2011) $
+  Revision:       $Revision: 28423 $
 
   Description:    This file contains the Application Framework definitions.
 
 
-  Copyright 2004-2009 Texas Instruments Incorporated. All rights reserved.
+  Copyright 2004-2011 Texas Instruments Incorporated. All rights reserved.
 
   IMPORTANT: Your use of this Software is limited to those specific rights
   granted under the terms of a software license agreement between the user
@@ -22,8 +22,8 @@
   its documentation for any purpose.
 
   YOU FURTHER ACKNOWLEDGE AND AGREE THAT THE SOFTWARE AND DOCUMENTATION ARE
-  PROVIDED 揂S IS?WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
-  INCLUDING WITHOUT LIMITATION, ANY WARRANTY OF MERCHANTABILITY, TITLE, 
+  PROVIDED 揂S IS?WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+  INCLUDING WITHOUT LIMITATION, ANY WARRANTY OF MERCHANTABILITY, TITLE,
   NON-INFRINGEMENT AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL
   TEXAS INSTRUMENTS OR ITS LICENSORS BE LIABLE OR OBLIGATED UNDER CONTRACT,
   NEGLIGENCE, STRICT LIABILITY, CONTRIBUTION, BREACH OF WARRANTY, OR OTHER
@@ -34,9 +34,8 @@
   (INCLUDING BUT NOT LIMITED TO ANY DEFENSE THEREOF), OR OTHER SIMILAR COSTS.
 
   Should you have any questions regarding your right to use this Software,
-  contact Texas Instruments Incorporated at www.TI.com. 
+  contact Texas Instruments Incorporated at www.TI.com.
 **************************************************************************************************/
-
 #ifndef AF_H
 #define AF_H
 
@@ -58,9 +57,11 @@ extern "C"
  */
 
 #define AF_BROADCAST_ENDPOINT              0xFF
-  
+
+#define AF_PREPROCESS                      0x04   // Will force APS to callback to preprocess before calling NWK layer
+#define AF_LIMIT_CONCENTRATOR              0x08
 #define AF_ACK_REQUEST                     0x10
-#define AF_DISCV_ROUTE                     0x20
+#define AF_DISCV_ROUTE                     0x20   // This option is no longer used, and will be taken out later
 #define AF_EN_SECURITY                     0x40
 #define AF_SKIP_ROUTING                    0x80
 
@@ -74,13 +75,12 @@ extern "C"
 /*********************************************************************
  * Node Descriptor
  */
-
 #define AF_MAX_USER_DESCRIPTOR_LEN         16
 #define AF_USER_DESCRIPTOR_FILL          0x20
 typedef struct
 {
-  byte len;     // Length of string descriptor
-  byte desc[AF_MAX_USER_DESCRIPTOR_LEN];
+  uint8 len;     // Length of string descriptor
+  uint8 desc[AF_MAX_USER_DESCRIPTOR_LEN];
 } UserDescriptorFormat_t;
 
 // Node Logical Types
@@ -113,7 +113,7 @@ typedef struct
   uint8 MaxInTransferSize[2];
   uint16 ServerMask;
   uint8 MaxOutTransferSize[2];
-  uint8 DescriptorCapability; 
+  uint8 DescriptorCapability;
 } NodeDescriptorFormat_t;
 
 // Bit masks for the ServerMask.
@@ -178,15 +178,15 @@ typedef uint16  cId_t;
 // Simple Description Format Structure
 typedef struct
 {
-  byte          EndPoint;
-  uint16        AppProfId;
-  uint16        AppDeviceId;
-  byte          AppDevVer:4;
-  byte          Reserved:4;             // AF_V1_SUPPORT uses for AppFlags:4.
-  byte          AppNumInClusters;
-  cId_t         *pAppInClusterList;
-  byte          AppNumOutClusters;
-  cId_t         *pAppOutClusterList;
+  uint8          EndPoint;     //EP ID(EP = End Point)
+  uint16         AppProfId;    //profile ID(剖面ID)
+  uint16         AppDeviceId;  //Device ID
+  uint8          AppDevVer:4;  //Device Version 0x00  為version 1.0
+  uint8          Reserved:4;             // AF_V1_SUPPORT uses for AppFlags:4.
+  uint8          AppNumInClusters;       // 終端支持的輸入簇的個數
+  cId_t         *pAppInClusterList;      //指向輸入ClusterID列表的指針
+  uint8          AppNumOutClusters;      //輸出簇的個數
+  cId_t         *pAppOutClusterList;     //指向輸出ClusterID列表的指針
 } SimpleDescriptionFormat_t;
 
 /*********************************************************************
@@ -206,9 +206,9 @@ typedef struct
 // Generalized MSG Command Format
 typedef struct
 {
-  byte   TransSeqNumber;
-  uint16 DataLength;               // Number of bytes in TransData
-  byte  *Data;
+  uint8   TransSeqNumber;
+  uint16  DataLength;              // Number of bytes in TransData
+  uint8  *Data;
 } afMSGCommandFormat_t;
 
 typedef enum
@@ -224,22 +224,22 @@ typedef enum
 
 typedef enum
 {
-  afAddrNotPresent = AddrNotPresent,
-  afAddr16Bit      = Addr16Bit,
+  afAddrNotPresent = AddrNotPresent, //间接传送
+  afAddr16Bit      = Addr16Bit,  //点播方式
   afAddr64Bit      = Addr64Bit,
-  afAddrGroup      = AddrGroup,
-  afAddrBroadcast  = AddrBroadcast
+  afAddrGroup      = AddrGroup,  //组播方式
+  afAddrBroadcast  = AddrBroadcast //广播方式
 } afAddrMode_t;
 
 typedef struct
 {
   union
   {
-    uint16      shortAddr;
-    ZLongAddr_t extAddr;
+    uint16      shortAddr;  //短地址
+    ZLongAddr_t extAddr;    //IEEE地址
   } addr;
-  afAddrMode_t addrMode;
-  byte endPoint;
+  afAddrMode_t addrMode;    //传送模式
+  uint8 endPoint;           //端点号
   uint16 panId;  // used for the INTER_PAN feature
 } afAddrType_t;
 
@@ -259,14 +259,15 @@ typedef struct
   int8  rssi;               /* The received RF power in units dBm */
   uint8 SecurityUse;        /* deprecated */
   uint32 timestamp;         /* receipt timestamp from MAC */
+  uint8 nwkSeqNum;          /* network header frame sequence number */
   afMSGCommandFormat_t cmd; /* Application Data */
 } afIncomingMSGPacket_t;
 
 typedef struct
 {
   osal_event_hdr_t hdr;
-  byte endpoint;
-  byte transID;
+  uint8 endpoint;
+  uint8 transID;
 } afDataConfirm_t;
 
 // Endpoint Table - this table is the device description
@@ -275,9 +276,9 @@ typedef struct
 // endpoint defined.
 typedef struct
 {
-  byte endPoint;
-  byte *task_id;  // Pointer to location of the Application task ID.
-  SimpleDescriptionFormat_t *simpleDesc;
+  uint8 endPoint;
+  uint8 *task_id;  // Pointer to location of the Application task ID.
+  SimpleDescriptionFormat_t *simpleDesc;  //设备简单描述符
   afNetworkLatencyReq_t latencyReq;
 } endPointDesc_t;
 
@@ -298,26 +299,28 @@ typedef enum
   eEP_NotUsed
 } eEP_Flags;
 
-typedef struct
-{
-  endPointDesc_t *epDesc;
-  eEP_Flags flags;
-  pDescCB  pfnDescCB;     // Don't use if this function pointer is NULL.
-  void *nextDesc;
-} epList_t;
+typedef struct {
+  uint8 frameDelay;
+  uint8 windowSize;
+} afAPSF_Config_t;
 
-/*********************************************************************
- * MACROS
- */
+typedef struct _epList_t {
+  struct _epList_t *nextDesc;
+  endPointDesc_t *epDesc;
+  pDescCB  pfnDescCB;     // Don't use if this function pointer is NULL.
+  afAPSF_Config_t apsfCfg;
+  eEP_Flags flags;
+} epList_t;
 
 /*********************************************************************
  * TYPEDEFS
  */
 
-#define afStatus_SUCCESS            ZSuccess
-#define afStatus_FAILED             ZFailure
-#define afStatus_MEM_FAIL           ZMemError
-#define afStatus_INVALID_PARAMETER  ZInvalidParameter
+#define afStatus_SUCCESS            ZSuccess           /* 0x00 */
+#define afStatus_FAILED             ZFailure           /* 0x01 */
+#define afStatus_INVALID_PARAMETER  ZInvalidParameter  /* 0x02 */
+#define afStatus_MEM_FAIL           ZMemError          /* 0x10 */
+#define afStatus_NO_ROUTE           ZNwkNoRoute        /* 0xCD */
 
 typedef ZStatus_t afStatus_t;
 
@@ -326,7 +329,6 @@ typedef struct
   uint8              kvp;
   APSDE_DataReqMTU_t aps;
 } afDataReqMTU_t;
-
 
 /*********************************************************************
  * Globals
@@ -341,7 +343,8 @@ extern epList_t *epList;
  /*
   * afInit - Initialize the AF.
   */
-  extern void afInit( void );
+  //extern void afInit( void );
+  #define afInit()  // No work to do for now.
 
  /*
   * afRegisterExtended - Register an Application's EndPoint description
@@ -357,6 +360,12 @@ extern epList_t *epList;
   extern afStatus_t afRegister( endPointDesc_t *epDesc );
 
  /*
+  * afDelete - Delete an Application's EndPoint descriptor and frees the memory.
+  *
+  */
+  extern afStatus_t afDelete( uint8 EndPoint );
+
+ /*
   * afDataConfirm - APS will call this function after a data message
   *                 has been sent.
   */
@@ -367,13 +376,13 @@ extern epList_t *epList;
   *                   message is received.
   */
   extern void afIncomingData( aps_FrameFormat_t *aff, zAddrType_t *SrcAddress, uint16 SrcPanId,
-                       NLDE_Signal_t *sig, byte SecurityUse, uint32 timestamp );
+                       NLDE_Signal_t *sig, uint8 nwkSeqNum, uint8 SecurityUse, uint32 timestamp );
 
   afStatus_t AF_DataRequest( afAddrType_t *dstAddr, endPointDesc_t *srcEP,
                              uint16 cID, uint16 len, uint8 *buf, uint8 *transID,
                              uint8 options, uint8 radius );
 
-  
+
 /*********************************************************************
  * @fn      AF_DataRequestSrcRtg
  *
@@ -403,7 +412,7 @@ extern epList_t *epList;
 
 afStatus_t AF_DataRequestSrcRtg( afAddrType_t *dstAddr, endPointDesc_t *srcEP,
                            uint16 cID, uint16 len, uint8 *buf, uint8 *transID,
-                           uint8 options, uint8 radius, uint8 relayCnt, 
+                           uint8 options, uint8 radius, uint8 relayCnt,
                            uint16* pRelayList );
 
 /*********************************************************************
@@ -414,14 +423,14 @@ afStatus_t AF_DataRequestSrcRtg( afAddrType_t *dstAddr, endPointDesc_t *srcEP,
   *	afFindEndPointDesc - Find the endpoint description entry from the
   *                      endpoint number.
   */
-  extern endPointDesc_t *afFindEndPointDesc( byte endPoint );
+  extern endPointDesc_t *afFindEndPointDesc( uint8 endPoint );
 
  /*
   *	afFindSimpleDesc - Find the Simple Descriptor from the endpoint number.
   *   	  If return value is not zero, the descriptor memory must be freed.
   */
-  extern byte afFindSimpleDesc( SimpleDescriptionFormat_t **ppDesc, byte EP );
-  
+  extern uint8 afFindSimpleDesc( SimpleDescriptionFormat_t **ppDesc, uint8 EP );
+
  /*
   *	afDataReqMTU - Get the Data Request MTU(Max Transport Unit)
   */
@@ -442,24 +451,31 @@ afStatus_t AF_DataRequestSrcRtg( afAddrType_t *dstAddr, endPointDesc_t *srcEP,
  /*
   *	afNumEndPoints - returns the number of endpoints defined.
   */
-  extern byte afNumEndPoints( void );
+  extern uint8 afNumEndPoints( void );
 
  /*
   *	afEndPoints - builds an array of endpoints.
   */
-  extern void afEndPoints( byte *epBuf, byte skipZDO );
+  extern void afEndPoints( uint8 *epBuf, uint8 skipZDO );
 
  /*
-  *     afCopyAddress
-  *
+  * afCopyAddress
   */
 extern void afCopyAddress (afAddrType_t *afAddr, zAddrType_t *zAddr);
 
-/*********************************************************************
-*********************************************************************/
+ /*
+  *	afAPSF_ConfigGet - ascertain the fragmentation configuration for the specified EndPoint.
+  */
+void afAPSF_ConfigGet(uint8 endPoint, afAPSF_Config_t *pCfg);
+
+ /*
+  *	afAPSF_ConfigSet - set the fragmentation configuration for the specified EndPoint.
+  */
+afStatus_t afAPSF_ConfigSet(uint8 endPoint, afAPSF_Config_t *pCfg);
 
 #ifdef __cplusplus
 }
 #endif
-
 #endif
+/**************************************************************************************************
+*/

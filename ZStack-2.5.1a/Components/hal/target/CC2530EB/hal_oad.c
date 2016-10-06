@@ -1,15 +1,15 @@
 /**************************************************************************************************
   Filename:       _hal_oad.c
-  Revised:        $Date: 2008-01-17 12:32:06 -0800 (Thu, 17 Jan 2008) $
-  Revision:       $Revision: 16224 $
+  Revised:        $Date: 2010-07-08 18:39:25 -0700 (Thu, 08 Jul 2010) $
+  Revision:       $Revision: 22957 $
 
   Description:    This module contains optionally-compiled Boot Code to support OAD.
                   The rest of the functionality is the H/W specific drivers to read/write
                   the flash/NV containing the ACTIVE and the DOWNLOADED images.
-  Notes:          This version targets the Texas Instruments CC2x3x family of processors.
+  Notes:          This version targets the Texas Instruments CC253x family of processors.
 
 
-  Copyright 2008-2009 Texas Instruments Incorporated. All rights reserved.
+  Copyright 2008-2010 Texas Instruments Incorporated. All rights reserved.
 
   IMPORTANT: Your use of this Software is limited to those specific rights
   granted under the terms of a software license agreement between the user
@@ -53,31 +53,6 @@
 #include "hal_types.h"
 
 /* ------------------------------------------------------------------------------------------------
- *                                           Macros
- * ------------------------------------------------------------------------------------------------
- */
-
-/* ------------------------------------------------------------------------------------------------
- *                                          Constants
- * ------------------------------------------------------------------------------------------------
- */
-
-/* ------------------------------------------------------------------------------------------------
- *                                          Typedefs
- * ------------------------------------------------------------------------------------------------
- */
-
-/* ------------------------------------------------------------------------------------------------
- *                                       Global Variables
- * ------------------------------------------------------------------------------------------------
- */
-
-/* ------------------------------------------------------------------------------------------------
- *                                       Global Functions
- * ------------------------------------------------------------------------------------------------
- */
-
-/* ------------------------------------------------------------------------------------------------
  *                                       Local Variables
  * ------------------------------------------------------------------------------------------------
  */
@@ -98,6 +73,7 @@ static void HalSPIWrite(uint32 addr, uint8 *pBuf, uint16 len);
 #endif
 
 #if HAL_OAD_BOOT_CODE
+static void vddWait(uint8 vdd);
 static void dl2rc(void);
 static uint16 crcCalc(void);
 
@@ -120,9 +96,9 @@ static uint16 crcCalc(void);
 #pragma location="NEAR_CODE"
 void main(void)
 {
-  uint16 crc[2];
-
   HAL_BOARD_INIT();
+  vddWait(VDD_MIN_RUN);
+ 
 #if HAL_OAD_XNV_IS_SPI
   XNV_SPI_INIT();
 #endif
@@ -130,32 +106,53 @@ void main(void)
    * descriptors in addition to just Channel 0.
    */
   HAL_DMA_SET_ADDR_DESC0( &dmaCh0 );
-  HalFlashInit();
 
-  HalFlashRead(HAL_OAD_CRC_ADDR / HAL_FLASH_PAGE_SIZE,
-               HAL_OAD_CRC_ADDR % HAL_FLASH_PAGE_SIZE,
-               (uint8 *)crc, sizeof(crc));
-
-  if (crc[0] != crc[1])
+  while (1)
   {
-    // If the CRC is erased or the RC code fails a sanity check, instantiate the DL code (again).
-    if ((crc[0] == 0) || (crc[0] != crcCalc()))
-    {
-      dl2rc();
+    uint16 crc[2];
 
-      /* If dl2rc() fails, a flawed image is allowed to run - 
-       * maybe the damage is not fatal to OTA ops?
-       */
+    HalFlashRead(HAL_OAD_CRC_ADDR / HAL_FLASH_PAGE_SIZE,
+                 HAL_OAD_CRC_ADDR % HAL_FLASH_PAGE_SIZE,
+                 (uint8 *)crc, sizeof(crc));
+
+    if (crc[0] == crc[1])
+    {
+      break;
     }
-    else
+    else if ((crc[0] != 0) && (crc[0] == crcCalc()))
     {
       crc[1] = crc[0];
       HalFlashWrite((HAL_OAD_CRC_ADDR / HAL_FLASH_WORD_SIZE), (uint8 *)crc, 1);
+    }
+    else
+    {
+      dl2rc();
     }
   }
 
   // Simulate a reset for the Application code by an absolute jump to location 0x0800.
   asm("LJMP 0x800\n");
+}
+
+/*********************************************************************
+ * @fn      vddWait
+ *
+ * @brief   Loop waiting for 256 reads of the Vdd over the requested limit.
+ *
+ * @param   vdd - Vdd level to wait for.
+ *
+ * @return  None.
+ *********************************************************************/
+static void vddWait(uint8 vdd)
+{
+  uint8 cnt = 16;
+
+  do {
+    do {
+      ADCCON3 = 0x0F;
+      while (!(ADCCON1 & 0x80));
+    } while (ADCH < vdd);
+  } while (--cnt);
 }
 
 /*********************************************************************
@@ -176,6 +173,7 @@ static void dl2rc(void)
   uint16 addr = HAL_OAD_RC_START / HAL_FLASH_WORD_SIZE;
   uint8 buf[4];
 
+  vddWait(VDD_MIN_OAD);
   HalOADRead(PREAMBLE_OFFSET, (uint8 *)&preamble, sizeof(preamble_t), HAL_OAD_DL);
 
   for (oset = 0; oset < preamble.len; oset += HAL_FLASH_WORD_SIZE)
@@ -205,11 +203,19 @@ static uint16 crcCalc(void)
   uint16 crc = 0;
 
   HalOADRead(PREAMBLE_OFFSET, (uint8 *)&preamble, sizeof(preamble_t), HAL_OAD_RC);
+  if (preamble.len > HAL_OAD_DL_SIZE)
+  {
+    return 0;
+  }
 
   // Run the CRC calculation over the active body of code.
   for (oset = 0; oset < preamble.len; oset++)
   {
-    if ((oset < HAL_OAD_CRC_OSET) || (oset >= HAL_OAD_CRC_OSET+4))
+    if (oset == HAL_OAD_CRC_OSET)
+    {
+      oset += 3;
+    }
+    else
     {
       uint8 buf;
       HalOADRead(oset, &buf, 1, HAL_OAD_RC);

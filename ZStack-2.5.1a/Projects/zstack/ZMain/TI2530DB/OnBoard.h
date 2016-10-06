@@ -1,13 +1,13 @@
 /**************************************************************************************************
   Filename:       OnBoard.h
-  Revised:        $Date: 2009-04-23 10:46:00 -0700 (Thu, 23 Apr 2009) $
-  Revision:       $Revision: 19822 $
+  Revised:        $Date: 2012-03-29 12:09:02 -0700 (Thu, 29 Mar 2012) $
+  Revision:       $Revision: 29943 $
 
   Description:    Defines stuff for EVALuation boards
-  Notes:          This file targets the Chipcon CC2530
+  Notes:          This file targets the Chipcon CC2530/31
 
 
-  Copyright 2005-2009 Texas Instruments Incorporated. All rights reserved.
+  Copyright 2005-2010 Texas Instruments Incorporated. All rights reserved.
 
   IMPORTANT: Your use of this Software is limited to those specific rights
   granted under the terms of a software license agreement between the user
@@ -23,7 +23,7 @@
   its documentation for any purpose.
 
   YOU FURTHER ACKNOWLEDGE AND AGREE THAT THE SOFTWARE AND DOCUMENTATION ARE
-  PROVIDED “AS IS?WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+  PROVIDED “AS IS” WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED,
   INCLUDING WITHOUT LIMITATION, ANY WARRANTY OF MERCHANTABILITY, TITLE,
   NON-INFRINGEMENT AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL
   TEXAS INSTRUMENTS OR ITS LICENSORS BE LIABLE OR OBLIGATED UNDER CONTRACT,
@@ -75,16 +75,7 @@ extern uint8 aExtendedAddress[8];
   Timer4 interrupts @ 1.0 msecs using 1/128 pre-scaler
   TICK_COUNT = (CPUMHZ / 128) / 1000
 */
-#ifdef CPU_16MHZ
-  #define TICK_COUNT  1  // 16 Mhz Output Compare Count
-  #define RETUNE_THRESHOLD 1  // Threshold for power saving algorithm
-#elif defined CPU32MHZ
-  #define TICK_COUNT  1  // 32 Mhz Output Compare Count
-  #define RETUNE_THRESHOLD 1  // Threshold for power saving algorithm
-#endif
-
-/* OSAL Timer define */
-#define OSAL_TIMER  HAL_TIMER_2
+#define TICK_COUNT  1  // 32 Mhz Output Compare Count
 
 /* CC2430 DEFINITIONS */
 
@@ -144,15 +135,6 @@ extern uint8 aExtendedAddress[8];
  * MACROS
  */
 
-// DB peripheral VDD control
-#ifdef CC2430DB
-  #define INIT_DBIO() { P1DIR |= GPIO_2; P1_2 = 0; }
-  #define STOP_DBIO() { P1_2 = 1; }
-#else // CC2430BB or CC2430EB
-  #define INIT_DBIO()
-  #define STOP_DBIO()
-#endif
-
 // These Key definitions are unique to this development system.
 // They are used to bypass functions when starting up the device.
 #define SW_BYPASS_NV    HAL_KEY_SW_5  // Bypass Network layer NV restore
@@ -163,9 +145,9 @@ extern uint8 aExtendedAddress[8];
   #if !defined DEBUG
     #define DEBUG  0
   #endif
-  //#if LCD_SUPPORTED==DEBUG
-  //#define SERIAL_DEBUG_SUPPORTED  // Serial-debug
-  //#endif
+  #if LCD_SUPPORTED==DEBUG
+    #define SERIAL_DEBUG_SUPPORTED  // Serial-debug
+  #endif
 #else // No LCD support
   #undef SERIAL_DEBUG_SUPPORTED  // No serial-debug
 #endif
@@ -193,7 +175,14 @@ extern uint8 aExtendedAddress[8];
 
 // Restart system from absolute beginning
 // Disables interrupts, forces WatchDog reset
-#define SystemReset()  HAL_SYSTEM_RESET()
+#define SystemReset()       \
+{                           \
+  HAL_DISABLE_INTERRUPTS(); \
+  HAL_SYSTEM_RESET();       \
+}
+
+#define SystemResetSoft()  Onboard_soft_reset()
+
 /* Reset reason for reset indication */
 #define ResetReason() ((SLEEPSTA >> 3) & 0x03)
 
@@ -211,8 +200,8 @@ extern uint8 aExtendedAddress[8];
 
 #ifdef __IAR_SYSTEMS_ICC__
 // Internal (MCU) Stack addresses
-#define XSTACK_BEG ((uint8 const *)(_Pragma("segment=\"XSTACK\"") __segment_begin("XSTACK")))
-#define XSTACK_END ((uint8 const *)(_Pragma("segment=\"XSTACK\"") __segment_end("XSTACK"))-1)
+#define CSTACK_BEG ((uint8 const *)(_Pragma("segment=\"XSTACK\"") __segment_begin("XSTACK")))
+#define CSTACK_END ((uint8 const *)(_Pragma("segment=\"XSTACK\"") __segment_end("XSTACK"))-1)
 // Stack Initialization Value
 #define STACK_INIT_VALUE  0xCD
 #else
@@ -223,13 +212,11 @@ extern uint8 aExtendedAddress[8];
  * and should be adjusted to your systems requirements.
  */
 #if !defined INT_HEAP_LEN
-  #if defined ZDO_COORDINATOR
-    #define INT_HEAP_LEN  3072
-  #elif defined RTR_NWK
-    #define INT_HEAP_LEN  3072
-  #else
-    #define INT_HEAP_LEN  2048
-  #endif
+#if defined RTR_NWK
+  #define INT_HEAP_LEN  3072
+#else
+  #define INT_HEAP_LEN  2048
+#endif
 #endif
 #define MAXMEMHEAP INT_HEAP_LEN
 
@@ -250,13 +237,9 @@ extern uint8 aExtendedAddress[8];
 typedef struct
 {
   osal_event_hdr_t hdr;
-  uint8             state; // shift
-  uint8             keys;  // keys
+  uint8 state; // shift
+  uint8 keys;  // keys
 } keyChange_t;
-
-/*********************************************************************
- * TYPEDEFS
- */
 
 /*********************************************************************
  * FUNCTIONS
@@ -283,13 +266,13 @@ typedef struct
   /*
    * Send "Key Pressed" message to application
    */
-  extern uint8 OnBoard_SendKeys(  uint8 keys, uint8 shift);
+  extern uint8 OnBoard_SendKeys( uint8 keys, uint8 shift );
 
 /* LCD Emulation/Control Functions */
   /*
    * Convert an interger to an ascii string
    */
-  extern void _itoa(uint16 num, uint8 *buf, uint8 radix);
+  extern void _itoa( uint16 num, uint8 *buf, uint8 radix );
 
 
   extern void Dimmer( uint8 lvl );
@@ -335,6 +318,11 @@ typedef struct
    * Board specific micro-second wait
    */
   extern void Onboard_wait( uint16 timeout );
+
+  /*
+   * Board specific soft reset.
+   */
+  extern __near_func void Onboard_soft_reset( void );
 
 /*********************************************************************
 *********************************************************************/

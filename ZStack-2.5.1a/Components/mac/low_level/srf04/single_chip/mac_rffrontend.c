@@ -1,12 +1,12 @@
 /**************************************************************************************************
   Filename:       mac_rffrontend.c
-  Revised:        $Date: 2009-08-26 06:31:27 -0700 (Wed, 26 Aug 2009) $
-  Revision:       $Revision: 20647 $
+  Revised:        $Date: 2011-07-12 09:54:47 -0700 (Tue, 12 Jul 2011) $
+  Revision:       $Revision: 26749 $
 
   Description:    RF frontend configuration module
 
 
-  Copyright 2009 Texas Instruments Incorporated. All rights reserved.
+  Copyright 2009-2011 Texas Instruments Incorporated. All rights reserved.
 
   IMPORTANT: Your use of this Software is limited to those specific rights
   granted under the terms of a software license agreement between the user
@@ -45,6 +45,7 @@
 #include "hal_board_cfg.h"
 #include "hal_assert.h"
 #include "mac_api.h"
+#include "mac_radio_defs.h"
 
 
 /* ------------------------------------------------------------------------------------------------
@@ -64,9 +65,6 @@
  *                                           MACROS
  * ------------------------------------------------------------------------------------------------
  */
-#define HAL_PA_LNA_RX_HGM()                           st( P0_7 = 1; )
-#define HAL_PA_LNA_RX_LGM()                           st( P0_7 = 0; )
-
 
 /* ------------------------------------------------------------------------------------------------
  *                                       Function Prototypes
@@ -86,13 +84,14 @@ void MAC_RfFrontendSetup(void);
  */
 void MAC_RfFrontendSetup(void)
 {
-  /* AGCCTRL1 for CC2590 or CC2591 */
-  AGCCTRL1 = 0x16;
-
-  /* CC2591 HGM pin control configuration
+  /* CC2591 HGM pin control configuration. 
    *   P0_7 -> HGM
    */
   HAL_PA_LNA_RX_HGM();
+  
+  /* Raises the CCA threshold to about -70 dBm input level.
+   */
+  CCACTRL0 = CCA_THR_HGM;
 
   /* Select power register value table and RSSI adjustment value table */
   MAC_SetRadioRegTable(MAC_CC2591_TX_PWR_TABLE_IDX, MAC_CC2591_HGM_RSSI_ADJ_IDX);

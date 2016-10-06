@@ -3,10 +3,10 @@
   Revised:        $Date: 2007-10-27 17:22:23 -0700 (Sat, 27 Oct 2007) $
   Revision:       $Revision: 15795 $
 
-  Description:    This file contains the Generic Application definitions.
+  Description:    This file contains the Sample Application definitions.
 
 
-  Copyright 2004-2007 Texas Instruments Incorporated. All rights reserved.
+  Copyright 2007 Texas Instruments Incorporated. All rights reserved.
 
   IMPORTANT: Your use of this Software is limited to those specific rights
   granted under the terms of a software license agreement between the user
@@ -34,7 +34,7 @@
   (INCLUDING BUT NOT LIMITED TO ANY DEFENSE THEREOF), OR OTHER SIMILAR COSTS.
 
   Should you have any questions regarding your right to use this Software,
-  contact Texas Instruments Incorporated at www.TI.com. 
+  contact Texas Instruments Incorporated at https://aldsz.taobao.com
 **************************************************************************************************/
 
 #ifndef SAMPLEAPP_H
@@ -56,21 +56,31 @@ extern "C"
 
 // These constants are only for example and should be changed to the
 // device's needs
-#define SAMPLEAPP_ENDPOINT           10
+#define SAMPLEAPP_ENDPOINT           20
 
-#define SAMPLEAPP_PROFID             0x0F04
+#define SAMPLEAPP_PROFID             0x0F08
 #define SAMPLEAPP_DEVICEID           0x0001
 #define SAMPLEAPP_DEVICE_VERSION     0
 #define SAMPLEAPP_FLAGS              0
 
-#define SAMPLEAPP_MAX_CLUSTERS       1
-#define SAMPLEAPP_CLUSTERID          1
+#define SAMPLEAPP_MAX_CLUSTERS       2
+#define SAMPLEAPP_PERIODIC_CLUSTERID 1
+#define SAMPLEAPP_FLASH_CLUSTERID     2
+#define SAMPLEAPP_P2P_CLUSTERID       3
 
 // Send Message Timeout
-#define SAMPLEAPP_SEND_MSG_TIMEOUT   5000     // Every 5 seconds
-
+#define SAMPLEAPP_SEND_PERIODIC_MSG_TIMEOUT   5000     // Every 5 seconds
+#define SAMPLEAPP_SEND_P2P_MSG_TIMEOUT   500     // Every 5 seconds
+#define SAMPLEAPP_SEND_PERIODIC_ACKMSG_TIMEOUT 1000
 // Application Events (OSAL) - These are bit weighted definitions.
-#define SAMPLEAPP_SEND_MSG_EVT       0x0001
+#define SAMPLEAPP_SEND_PERIODIC_MSG_EVT       0x0001
+#define SAMPLEAPP_SEND_P2P_MSG_EVT       0x0002 
+#define SAMPLEAPP_SEND_PERIODIC_ACKMSG_EVT 0x0004
+// Group ID for Flash Command
+#define SAMPLEAPP_FLASH_GROUP                  0x0001
+  
+// Flash Command Duration - in milliseconds
+#define SAMPLEAPP_FLASH_DURATION               1000
 
 /*********************************************************************
  * MACROS
@@ -83,12 +93,12 @@ extern "C"
 /*
  * Task Initialization for the Generic Application
  */
-extern void SampleApp_Init( byte task_id );
+extern void SampleApp_Init( uint8 task_id );
 
 /*
  * Task Event Processor for the Generic Application
  */
-extern UINT16 SampleApp_ProcessEvent( byte task_id, UINT16 events );
+extern UINT16 SampleApp_ProcessEvent( uint8 task_id, uint16 events );
 
 /*********************************************************************
 *********************************************************************/

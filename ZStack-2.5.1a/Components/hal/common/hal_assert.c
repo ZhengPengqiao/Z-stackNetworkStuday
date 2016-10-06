@@ -1,7 +1,7 @@
 /**************************************************************************************************
   Filename:       hal_assert.c
-  Revised:        $Date: 2010-01-07 10:10:43 -0800 (Thu, 07 Jan 2010) $
-  Revision:       $Revision: 21451 $
+  Revised:        $Date: 2010-11-22 08:13:43 -0800 (Mon, 22 Nov 2010) $
+  Revision:       $Revision: 24480 $
 
   Description:    Describe the purpose and contents of the file.
 
@@ -49,10 +49,10 @@
 #include "hal_mcu.h"
 
 #if (defined HAL_MCU_AVR) || (defined HAL_MCU_CC2430) || (defined HAL_MCU_CC2530) || \
-  (defined HAL_MCU_CC2533) || (defined HAL_MCU_MSP430)
+    (defined HAL_MCU_CC2533) || (defined HAL_MCU_MSP430)
   /* for access to debug data */
-  #include "mac_rx.h"
-  #include "mac_tx.h"
+#include "mac_rx.h"
+#include "mac_tx.h"
 #endif
 
 /* ------------------------------------------------------------------------------------------------
@@ -77,13 +77,14 @@ void halAssertHandler(void)
   /* execute code that handles asserts */
 #ifdef ASSERT_RESET
   HAL_SYSTEM_RESET();
-#else
+#elif !defined ASSERT_WHILE
   halAssertHazardLights();
+#else
+  while(1);
 #endif
-
 }
 
-
+#if !defined ASSERT_WHILE
 /**************************************************************************************************
  * @fn          halAssertHazardLights
  *
@@ -216,7 +217,7 @@ void halAssertHazardLights(void)
 
 
 #if (defined HAL_MCU_AVR) || (defined HAL_MCU_CC2430) || (defined HAL_MCU_CC2530) || \
-  (defined HAL_MCU_CC2533) || (defined HAL_MCU_MSP430)
+    (defined HAL_MCU_CC2533) || (defined HAL_MCU_MSP430)
     debugData[DEBUG_DATA_TX_ACTIVE_OFS] = macTxActive;
     debugData[DEBUG_DATA_RX_ACTIVE_OFS] = macRxActive;
 #endif
@@ -287,7 +288,7 @@ void halAssertHazardLights(void)
     HAL_TURN_OFF_LED1();
   }
 }
-
+#endif
 
 /* ------------------------------------------------------------------------------------------------
  *                                    Compile Time Assertions

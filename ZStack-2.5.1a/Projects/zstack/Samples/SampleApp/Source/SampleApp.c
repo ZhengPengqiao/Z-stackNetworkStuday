@@ -341,19 +341,37 @@ void SampleApp_MessageMSGCB( afIncomingMSGPacket_t *pkt )
      byte data[2];
      data[0]  = pkt->cmd.Data[0];    //osal_memcpy(&data, pkt->cmd.Data, 1);
      data[1]  = pkt->cmd.Data[1];    //osal_memcpy(&data, pkt->cmd.Data, 1);
-     
+     HalLcdWriteScreen( (char*)pkt->cmd.Data, "rcvd" );
      if(data[0] == 'd' && data[1] == '1')
+     {
        HalLedSet(HAL_LED_1, HAL_LED_MODE_ON); 
+     }
      else if(data[0] == 'D' && data[1] == '1')
+     {
        HalLedSet(HAL_LED_1, HAL_LED_MODE_OFF); 
+     }
      else if(data[0] == 'd' && data[1] == '2')
+     {
        HalLedSet(HAL_LED_2, HAL_LED_MODE_ON); 
+     }
      else if(data[0] == 'D' && data[1] == '2')
+     {
        HalLedSet(HAL_LED_2, HAL_LED_MODE_OFF); 
+     }     
      else if(data[0] == 'd' && data[1] == '3')
+     {
+       //led3.引脚和Debug公用， 所以在使用下载器的时候这个led3不受控制
        HalLedSet(HAL_LED_3, HAL_LED_MODE_ON); 
+     }
      else if(data[0] == 'D' && data[1] == '3')
+     {
+        //led3.引脚和Debug公用， 所以在使用下载器的时候这个led3不受控制
        HalLedSet(HAL_LED_3, HAL_LED_MODE_OFF);    
+     }
+     else
+     {
+       HalLcdWriteScreen( (char*)data, "Err" );
+     }
 #endif  
      
       break;

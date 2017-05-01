@@ -57,6 +57,8 @@ extern "C"
 // These constants are only for example and should be changed to the
 // device's needs
 #define SAMPLEAPP_ENDPOINT           20
+#define DEVICEID   1    //设备号，之后考虑使用MAC代替
+#define SENSERTYPEID 1  //温湿度
 
 #define SAMPLEAPP_PROFID             0x0F08
 #define SAMPLEAPP_DEVICEID           0x0001
@@ -69,7 +71,7 @@ extern "C"
 #define SAMPLEAPP_P2P_CLUSTERID       3
 
 // Send Message Timeout
-#define SAMPLEAPP_SEND_PERIODIC_MSG_TIMEOUT   5000     // Every 5 seconds
+#define SAMPLEAPP_SEND_PERIODIC_MSG_TIMEOUT   1000     // Every 5 seconds
 #define SAMPLEAPP_SEND_P2P_MSG_TIMEOUT   2000     // Every 5 seconds
 // Application Events (OSAL) - These are bit weighted definitions.
 #define SAMPLEAPP_SEND_PERIODIC_MSG_EVT       0x0001

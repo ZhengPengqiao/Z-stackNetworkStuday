@@ -98,7 +98,9 @@ uint8 AppTitle[] = "ALD2530 LED"; //应用程序名称
 const cId_t SampleApp_ClusterList[SAMPLEAPP_MAX_CLUSTERS] =
 {
   SAMPLEAPP_PERIODIC_CLUSTERID,
-  SAMPLEAPP_FLASH_CLUSTERID
+  SAMPLEAPP_FLASH_CLUSTERID,
+  SAMPLEAPP_P2P_CLUSTERID,
+ SAMPLEAPP_SERIAL_CLUSTERID, 
 };
 
 const SimpleDescriptionFormat_t SampleApp_SimpleDesc =
@@ -153,7 +155,9 @@ uint8 SampleAppFlashCounter = 0;
  */
 void SampleApp_HandleKeys( uint8 shift, uint8 keys );
 void SampleApp_MessageMSGCB( afIncomingMSGPacket_t *pckt );
-void SampleApp_SendPeriodicMessage( void );
+void SampleApp_SerialMsg( uint8 * buf, uint8 len );
+void SampleApp_SendPeriodicMessage(  uint8 * buf, uint8 len );
+void SampleApp_SendTheMessage( uint8 * buf, uint8 len );
 void SampleApp_SendFlashMessage( uint16 flashTime );
 void SampleApp_Send_P2P_Message(void);
 /*********************************************************************
@@ -300,7 +304,15 @@ uint16 SampleApp_ProcessEvent( uint8 task_id, uint16 events )
         case KEY_CHANGE://按键事件
           SampleApp_HandleKeys( ((keyChange_t *)MSGpkt)->state, ((keyChange_t *)MSGpkt)->keys );
           break;
-
+        case CMD_SERIAL_MSG:
+          //这个数据格式是本人改造的，  消息是从MT_UART.c上传的，哈哈，   大家可以根据自己要求更改
+          //msg中第一个字节存储串口数据大小， msg+1的位置之后存储串口数据
+          #if defined(ZDO_COORDINATOR)  //协调器只接收数据
+          SampleApp_SerialMsg( ((mtOSALSerialData_t*)MSGpkt)->msg+1, ((mtOSALSerialData_t*)MSGpkt)->msg[0] );
+          #else
+          HalUARTWrite(0, "NotCoor,Not Send" , 16);//输出接收到的
+          #endif
+          break;
         // Received when a messages is received (OTA) for this endpoint
         case AF_INCOMING_MSG_CMD://接收数据事件,调用函数AF_DataRequest()接收数据
           SampleApp_MessageMSGCB( MSGpkt );//调用回调函数对收到的数据进行处理
@@ -314,7 +326,6 @@ uint16 SampleApp_ProcessEvent( uint8 task_id, uint16 events )
           //if ( (SampleApp_NwkState == DEV_ZB_COORD)//实验中协调器只接收数据所以取消发送事件
           if ( (SampleApp_NwkState == DEV_ROUTER) || (SampleApp_NwkState == DEV_END_DEVICE) )
           {
-            //这个项目中没有使用周期函数
             osal_start_timerEx( SampleApp_TaskID,
                               SAMPLEAPP_SEND_P2P_MSG_EVT,
                               SAMPLEAPP_SEND_P2P_MSG_TIMEOUT );
@@ -358,7 +369,6 @@ uint16 SampleApp_ProcessEvent( uint8 task_id, uint16 events )
     // return unprocessed events 返回未处理的事件
     return (events ^ SAMPLEAPP_SEND_P2P_MSG_EVT);
   }
-
   // Discard unknown events
   return 0;
 }
@@ -441,8 +451,9 @@ void SampleApp_MessageMSGCB( afIncomingMSGPacket_t *pkt )
   switch ( pkt->clusterId ) //判断簇ID
   {
     case SAMPLEAPP_P2P_CLUSTERID: //收到广播数据  
+      HalUARTWrite(0, "DA:" , 3);//输出接收到的
       HalUARTWrite(0,pkt->cmd.Data,pkt->cmd.DataLength);//输出接收到的
-      HalUARTWrite(0,"\n",1);  //回车换行
+      HalUARTWrite(0,"\n\n",1);  //回车换行
       break;
 
     case SAMPLEAPP_FLASH_CLUSTERID: //收到组播数据
@@ -456,6 +467,50 @@ void SampleApp_MessageMSGCB( afIncomingMSGPacket_t *pkt )
         HalLedSet(HAL_LED_2,HAL_LED_MODE_ON);
       }
       break;
+    case SAMPLEAPP_SERIAL_CLUSTERID:
+          #if defined(ZDO_COORDINATOR)  //协调器只接收数据
+           HalUARTWrite(0,"Coor Don't Rev",14);  //回车换行
+          #else
+             byte data[2];
+             data[0]  = pkt->cmd.Data[0];    //osal_memcpy(&data, pkt->cmd.Data, 1);
+             data[1]  = pkt->cmd.Data[1];    //osal_memcpy(&data, pkt->cmd.Data, 1);
+             HalUARTWrite(0,data,2);  //回车换行
+             if(data[0] == 'd' && data[1] == '1')
+             {
+               HalLedSet(HAL_LED_1, HAL_LED_MODE_ON); 
+             }
+             else if(data[0] == 'D' && data[1] == '1')
+             {
+               HalLedSet(HAL_LED_1, HAL_LED_MODE_OFF); 
+             }
+             else if(data[0] == 'd' && data[1] == '2')
+             {
+               HalLedSet(HAL_LED_2, HAL_LED_MODE_ON); 
+             }
+             else if(data[0] == 'D' && data[1] == '2')
+             {
+               HalLedSet(HAL_LED_2, HAL_LED_MODE_OFF); 
+             }     
+             else if(data[0] == 'd' && data[1] == '3')
+             {
+               //led3.引脚和Debug公用， 所以在使用下载器的时候这个led3不受控制
+               HalLedSet(HAL_LED_3, HAL_LED_MODE_ON); 
+             }
+             else if(data[0] == 'D' && data[1] == '3')
+             {
+                //led3.引脚和Debug公用， 所以在使用下载器的时候这个led3不受控制
+               HalLedSet(HAL_LED_3, HAL_LED_MODE_OFF);    
+             }
+             else
+             {
+               HalLcdWriteScreen( (char*)data, "Err" );
+             } 
+          #endif
+          break;
+         
+     
+     
+    break;
   }
 }
 
@@ -471,10 +526,7 @@ void SampleApp_MessageMSGCB( afIncomingMSGPacket_t *pkt )
 //分析发送周期信息
 void SampleApp_Send_P2P_Message( void )
 {
-
     uint8 strData[25];
-    uint8 temp[3]; 
-    uint8 humidity[3];   
 
     
     DHT11();             //获取温湿度
@@ -492,7 +544,6 @@ void SampleApp_Send_P2P_Message( void )
     strData[9] =shidu_shi*10+shidu_ge;
     strData[10] ='%';    
   
-    HalUARTWrite(0,strData, 11);
     
   //调用AF_DataRequest将数据无线广播出去
   if( AF_DataRequest( &SampleApp_P2P_DstAddr,//发送目的地址＋端点地址和传送模式
@@ -510,18 +561,16 @@ void SampleApp_Send_P2P_Message( void )
     HalLedSet(HAL_LED_1, HAL_LED_MODE_ON);
     // Error occurred in request to send.
   }
- 
 }
 
-void SampleApp_SendPeriodicMessage(void)
+void SampleApp_SendPeriodicMessage( uint8 * buf, uint8 len)
 {
-  byte SendData[11]="1234567890";
   // 调用AF_DataRequest将数据无线广播出去
   if( AF_DataRequest( &SampleApp_Periodic_DstAddr,//发送目的地址＋端点地址和传送模式
                        &SampleApp_epDesc,//源(答复或确认)终端的描述（比如操作系统中任务ID等）源EP
-                       SAMPLEAPP_PERIODIC_CLUSTERID, //被Profile指定的有效的集群号
-                       10,       // 发送数据长度
-                       SendData,// 发送数据缓冲区
+                       SAMPLEAPP_SERIAL_CLUSTERID, //被Profile指定的有效的集群号
+                       len,
+                       buf,
                        &SampleApp_TransID,     // 任务ID号
                        AF_DISCV_ROUTE,      // 有效位掩码的发送选项
                        AF_DEFAULT_RADIUS ) == afStatus_SUCCESS )  //传送跳数，通常设置为AF_DEFAULT_RADIUS
@@ -569,7 +618,24 @@ void SampleApp_SendFlashMessage( uint16 flashTime ) //此实验没有用到，后面再分析
   {
     // Error occurred in request to send.
   }
-  
+}
+
+
+/*********************************************************************
+ * @fn      SampleApp_SerialMsg
+ *
+ * @brief   处理串口接收到的数据
+ *
+ * @param   buf - 串口中的数据
+ * @param   len - 串口中的数据长度
+ *
+ * @return  none
+ */
+void SampleApp_SerialMsg( uint8 * buf, uint8 len )
+{
+  //将数据发送给特定的设备
+  HalUARTWrite(0,buf, len);
+  SampleApp_SendPeriodicMessage( buf, len);
   
 }
 
